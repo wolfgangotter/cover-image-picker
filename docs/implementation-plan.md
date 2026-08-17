@@ -33,12 +33,9 @@ Run via `probes/` on desktop and iOS.
 | **Q2 — EXIF orientation** | **Applied on both platforms, on all three decode paths** (32×64, red on top). | No EXIF parser needed. Drops ~40 LOC and half a day from Phase 1a, and removes a whole risk class. `core/decode.ts` just picks a path. |
 | **WebP encode (D1)** | **Desktop yes, iOS no** — exactly as F2 predicted. | D1's JPEG fallback confirmed on real hardware, not just caniuse. The capability probe works and is the right shape. |
 | **F9 — gesture** | **Both sync and async opened the picker on iOS.** Prediction was wrong. | Constraint downgraded, design unchanged — see F9 and §6. |
-| **D2 — YAML round-trip** | **All six values round-tripped**, including wikilinks, spaces, `#` and non-ASCII. | D2 stands. Wikilink stays the default. |
+| **D2 — YAML round-trip** | **All six values round-tripped**, including wikilinks, spaces, `#` and non-ASCII. **`frontmatterLinks` was populated.** | D2 settled: wikilink is the default, and Obsidian tracks the link. |
 
-**One thing still worth reading off the output you already have:** did the
-`frontmatterLinks` section list the wikilink rows, or was it empty? That decides
-whether renaming an image auto-updates the property — a README-worthy feature if
-yes. It does not block any code.
+**All Phase 0 questions are closed.** No open unknowns block Phase 1.
 
 ---
 
@@ -403,13 +400,29 @@ The `ImageEncoder` port still ships in Phase 1. It costs ~30 LOC and keeps the
 WASM option a two-file change if the ~20–30 % size difference ever proves to
 matter. `encode/wasm-webp.ts` stays out of the tree until then.
 
-### D2 — Frontmatter value format
-Default to `wikilink` (`cover: "[[assets/note_cover.webp]]"`), because the banner
-and cover plugins this feeds (Banners, Pixel Banner, Obsidian Banner) all accept
-wikilinks, and Obsidian resolves them (`frontmatterLinks` exists in
-`CachedMetadata`, so renames update automatically). Offer `markdown` and `path`
-for other consumers. **Verify the YAML round-trip early** — an unquoted
-`[[x]]` parses as a nested sequence and would silently corrupt the property.
+### D2 — Frontmatter value format → **RESOLVED: wikilink** (probe-confirmed)
+
+Default to `wikilink` (`cover: "[[assets/note_cover.jpg]]"`). Obsidian quotes it
+correctly, all six probe values round-tripped, and **`frontmatterLinks` is
+populated** — so the link is a first-class citizen of the vault graph.
+
+Three consequences worth building around:
+
+1. **Rename-tracking is free.** Move or rename the image and Obsidian rewrites
+   the property. State this in the README; it is a real differentiator against
+   pasting a raw path.
+2. **Link resolution is reliable**, so the *Reveal file* / *Open image* items in
+   the Door 1 menu can use `metadataCache.getFirstLinkpathDest()` rather than
+   string-matching paths.
+3. **The `{{noteName}}` naming token can go stale.** Rename the note and the
+   image keeps its old name — the link still resolves (via 1), so nothing breaks,
+   but `my-old-note_cover.jpg` sits next to `My New Note.md`. Cosmetic only.
+   A Phase 3 candidate is a `vault.on('rename')` handler that renames the image
+   to match; it is genuinely optional and touches files the user did not ask us
+   to touch, so it must be **opt-in** if built at all.
+
+Offer `markdown` and `path` formats for consumers that need them, but they lose
+benefits 1 and 2 — say so in the setting description.
 
 ### D3 — Do not touch `metadataTypeManager` or `MarkdownView.metadataEditor`
 Both are internal. Everything we need is reachable through the public API plus
@@ -535,6 +548,7 @@ property or the note body behaves exactly as stock Obsidian.
 
 **Phase 3 — Polish (1–2 days).** Camera capture (`capture` attribute); paste
 handling; replace/remove menu; PNG/JPEG format choice; per-property overrides.
+Optional and opt-in: rename the image when the note is renamed (D2 note 3).
 WASM WebP only if D1 is ever revisited.
 
 **Phase 4 — Release.** README with a screenshot and an explicit "no network, no
