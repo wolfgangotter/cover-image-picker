@@ -20,15 +20,25 @@ release/installer rules. They are the facts the architecture has to bend around.
 | F6 | `processFrontMatter(file, fn, options)` is atomic read-modify-write and can throw `YAMLParseError`. | `obsidian.d.ts:2954` | This is the only sanctioned write path. Never hand-edit YAML text. Always wrap in try/catch and surface a safe `Notice`. |
 | F7 | `FileManager.getAvailablePathForAttachment(filename, sourcePath)` exists and honours the user's attachment settings. `Vault.createBinary(path, ArrayBuffer)` writes the file. `FileManager.generateMarkdownLink()` produces a link honouring the vault's link-format settings. | `obsidian.d.ts:2967, 7396, 2931` | Use all three; do not reimplement path or link logic. |
 | F8 | `Platform.isIosApp / isMobileApp / isPhone / isDesktopApp` are public. | `obsidian.d.ts:4823` | Clean platform branching without UA sniffing. |
-| F9 | **WebKit requires `input.click()` to run synchronously inside the user-gesture call stack.** Any `await`, promise resolution, or event hop before it detaches the gesture and the picker silently never opens. Chrome is lenient; WebKit is not. | WebKit user-activation rules | **This inverts the mobile flow: pick the file *first*, resolve the target property *after*.** Any design that shows a chooser before opening the picker is broken on iOS. Load-bearing — see §6. |
+| F9 | **Measured, not assumed.** The general WebKit rule is that `input.click()` must run inside the user-gesture call stack. **On Obsidian iOS this turned out to be lenient**: the picker opened both synchronously *and* after `await Promise.resolve()` + `await setTimeout(…, 0)`. WebKit propagates gesture through short timers, and file inputs are gated less strictly than popups/fullscreen. | probe run, 2026-08-17 | We have slack, but it is undocumented, time-bounded and could tighten in any Apple or Obsidian update. **Treat "no `await` before `click()`" as cheap discipline rather than a hard constraint**, and keep the hard rule where it is actually load-bearing: *never put a modal or menu between the tap and the picker.* See §6. |
 | F10 | **Confirmed on device:** focusing a property in Live Preview shows only the system keyboard — no Obsidian toolbar. The toolbar *does* appear in source mode. | user testing, 2026-08 | The native toolbar (F4) covers source mode completely and Live Preview not at all. Live Preview needs its own affordance. |
 | F11 | Obsidian's **Settings → Editor → Properties in document** has `Visible` / `Hidden` / `Source`. Under `Hidden`/`Source` there is no property row to attach to. | Obsidian settings | The DOM-based affordance can be absent through no fault of ours. The command path must be able to do everything on its own. |
 
-### Remaining open question
+### Phase 0 probe results — all questions closed (2026-08-17)
 
-**Q2 — Does `drawImage()` apply EXIF orientation on iOS WKWebView?** Determines
-whether we need an explicit orientation transform. Test with a portrait iPhone
-photo. Everything else in this plan is independent of the answer.
+Run via `probes/` on desktop and iOS.
+
+| Question | Result | Effect on the plan |
+|---|---|---|
+| **Q2 — EXIF orientation** | **Applied on both platforms, on all three decode paths** (32×64, red on top). | No EXIF parser needed. Drops ~40 LOC and half a day from Phase 1a, and removes a whole risk class. `core/decode.ts` just picks a path. |
+| **WebP encode (D1)** | **Desktop yes, iOS no** — exactly as F2 predicted. | D1's JPEG fallback confirmed on real hardware, not just caniuse. The capability probe works and is the right shape. |
+| **F9 — gesture** | **Both sync and async opened the picker on iOS.** Prediction was wrong. | Constraint downgraded, design unchanged — see F9 and §6. |
+| **D2 — YAML round-trip** | **All six values round-tripped**, including wikilinks, spaces, `#` and non-ASCII. | D2 stands. Wikilink stays the default. |
+
+**One thing still worth reading off the output you already have:** did the
+`frontmatterLinks` section list the wikilink rows, or was it empty? That decides
+whether renaming an image auto-updates the property — a README-worthy feature if
+yes. It does not block any code.
 
 ---
 
@@ -193,10 +203,12 @@ typed error that maps to a user-safe `Notice` string; internals go to
    **magic-byte sniff** of the first 12 bytes rather than trusting `file.type` or
    the extension. Reject SVG outright (XSS vector via foreign content; also
    pointless for a raster pipeline).
-3. **Decode.** `createImageBitmap(blob, { imageOrientation: 'from-image' })`
-   with a `HTMLImageElement` + object-URL fallback for WebKit. Wrap in a timeout.
-   Always `bitmap.close()` / `URL.revokeObjectURL()` in `finally` — iOS webviews
-   are memory-tight and leaked bitmaps will kill the app.
+3. **Decode.** `createImageBitmap(blob, { imageOrientation: 'from-image' })`,
+   verified by probe to apply EXIF orientation on both platforms. Keep the
+   `HTMLImageElement` + object-URL path as a fallback (also verified) for older
+   webviews. **No manual EXIF handling is required** — probe result, Q2. Wrap in
+   a timeout, and always `bitmap.close()` / `URL.revokeObjectURL()` in `finally`
+   — iOS webviews are memory-tight and leaked bitmaps will kill the app.
 4. **Resize.** Pure geometry function `computeTargetSize(src, spec) → {w,h,crop}`
    — fully unit-testable, no DOM. Then draw. Downscales beyond 2× go through
    iterative halving (single-step large downscale is visibly aliased in WebKit).
@@ -223,29 +235,35 @@ this design, not an accident.
 
 ## 6. UI/UX design
 
-### The two constraints that determine the design
+### The constraints that determine the design
 
-**F9 (gesture):** the file picker must be opened synchronously from the tap.
 **F10 (no toolbar in Live Preview):** the native toolbar covers source mode only.
+This one is hard and confirmed on device.
 
-Together these rule out the obvious design — "tap a button, we ask which
-property, then open the picker". On iOS that picker never opens. The design has
-to be built the other way around.
+**F9 (gesture):** measured as *lenient* on Obsidian iOS — the picker opened even
+after two async hops. So this no longer forces the design. It still shapes it,
+for two reasons: the leniency is undocumented and could tighten, and a *modal or
+menu* between the tap and the picker is a different and much longer-lived
+interruption than a 0 ms timer. The rule we keep is the narrow one:
+
+> **Never put a modal or a menu between the tap and `input.click()`.**
+> Short awaits are fine. Anything that waits on the user is not.
 
 ### Principle: file first, target second
 
 ```
-tap  ──►  open picker SYNCHRONOUSLY  ──►  user picks photo  ──►  [async is now free]
- │         (nothing may be awaited                              resolve target,
- │          before this line)                                   ask only if ambiguous,
- └─ synchronously pre-resolve the likely target while we're at it   process, write
+tap  ──►  open picker  ──►  user picks photo  ──►  resolve target,
+ │        (no modal may                            ask only if ambiguous,
+ │         come before this)                       process, write
+ └─ pre-resolve the likely target (steps 1–3 are synchronous anyway)
 ```
 
-Pre-resolution steps 1–3 below are all synchronous reads (cursor, cache,
-in-memory), so they happen *before* the picker opens at no cost. Only the
-ambiguous cases need a modal, and by then the gesture no longer matters. This
-also happens to be better UX: choosing the photo is the user's actual intent,
-and confirming the destination afterwards is the rare path.
+Note this is now kept **because it is the better UX**, not because iOS forces it:
+choosing the photo is the user's actual intent, and confirming the destination is
+the rare path. It also keeps us on the safe side of F9 for free, so there is no
+reason to trade it away. Pre-resolution steps 1–3 below are synchronous reads
+(cursor, metadata cache, in-memory), so they cost nothing before the picker
+opens; only the ambiguous cases need a modal, and by then no gesture is in play.
 
 ### Three doors, one pipeline
 
@@ -360,9 +378,10 @@ In Live Preview, where no toolbar appears (F10), the same command is reachable
 from the command palette and resolves its target via the chain in §6. The inline
 button (Door 1) is the primary Live Preview affordance.
 
-**The command callback must call `input.click()` before any `await` (F9).**
-This is the single easiest way to break the plugin on iOS and it will look like
-"nothing happens". Add a code comment at that line.
+Per F9 the command callback does not strictly need to call `input.click()` before
+any `await` — but keep it early anyway, and never gate it behind a modal. Add a
+short comment at that line so a later refactor does not "helpfully" insert a
+confirmation dialog there.
 
 ---
 
@@ -456,7 +475,8 @@ takes its ports as arguments, so each test constructs its own.
 **Manual matrix (must run before release):** desktop Live Preview drop, desktop
 source mode, iOS source mode via toolbar, iOS Live Preview via inline button,
 iOS Live Preview via command palette (verifies the focus-tracker step), iPad,
-portrait photo orientation (Q2), 12 MP photo memory behaviour, note in
+portrait photo from the real camera (Q2 was proven with a synthetic fixture
+only — this is the ground-truth cross-check), 12 MP photo memory behaviour, note in
 subfolder, filename with spaces/unicode, property already populated, properties
 set to `Hidden` in Obsidian settings (F11), property-DOM adapter disabled (F1
 degradation), plugin disable/enable leaves no listeners.
@@ -490,17 +510,13 @@ Build order follows the doors: **command before inline button**, because the
 command has no internal-DOM dependency and proves the whole pipeline on the
 hardest platform first.
 
-**Phase 0 — Scaffold + Q2 (½ day).** Copy the sample, rename, add vitest, get a
-hello-world plugin loading on desktop and on the iPhone.
+**Phase 0 — ✅ DONE (2026-08-17).** Probes in `probes/` run on desktop and iOS;
+results and their consequences are in §1. Net effect: no EXIF parser needed,
+JPEG fallback confirmed, wikilink default confirmed, gesture risk downgraded.
+Remaining Phase 0 work is only the scaffold itself — copy the sample, rename,
+add vitest, confirm a hello-world plugin loads on both platforms.
 
-Then run the probes in **`probes/`** — a no-build throwaway plugin that answers
-Q2 (EXIF orientation, against a deterministic 64×32 EXIF-Orientation-6 fixture),
-D2 (YAML wikilink round-trip, including `frontmatterLinks` rename-tracking), and
-confirms F9 inside Obsidian's own iOS webview. See `probes/README.md` for how to
-read each result and what each outcome changes. All three are 10-minute checks
-that would each cost a day if found late.
-
-**Phase 1a — Pipeline + command, iOS-first (1½ days).** Settings → `core/` →
+**Phase 1a — Pipeline + command, iOS-first (1 day).** Settings → `core/` →
 ports → `ui/file-picker.ts` → `triggers/command.ts` with the full target
 resolution chain. No property DOM yet. **Acceptance: on iOS in *source* mode,
 with the command on the mobile toolbar, tap it, pick a photo, and get a resized,
@@ -539,7 +555,9 @@ three assets, community-plugin submission PR.
 4. **Scope creep into general edit behaviour** — the explicit "do not do".
    Mitigation: the property-name check lives in the pipeline, and every event
    handler returns early unless it owns the event.
-5. **Silent iOS gesture breakage** (F9). A refactor that inserts an `await`
-   before `input.click()` produces "tapping does nothing" with no error.
-   Mitigation: keep the click in one small function, comment the constraint at
-   the call site, and keep "iOS picker opens" in the manual matrix.
+5. **Silent iOS gesture breakage** (F9) — *downgraded by the probe, not
+   eliminated.* Obsidian iOS tolerated async today; Apple or Obsidian could
+   tighten it, and the failure mode is "tapping does nothing" with no error.
+   Mitigation: keep the click in one small function, never gate it behind a
+   modal, and keep "iOS picker opens" in the manual matrix so a regression is
+   caught by testing rather than by users.
