@@ -491,9 +491,14 @@ command has no internal-DOM dependency and proves the whole pipeline on the
 hardest platform first.
 
 **Phase 0 — Scaffold + Q2 (½ day).** Copy the sample, rename, add vitest, get a
-hello-world plugin loading on desktop and on the iPhone. Confirm Q2 (EXIF
-orientation on iOS) with a portrait photo. Confirm the YAML wikilink round-trip
-from D2 — both are 10-minute checks that would each cost a day if found late.
+hello-world plugin loading on desktop and on the iPhone.
+
+Then run the probes in **`probes/`** — a no-build throwaway plugin that answers
+Q2 (EXIF orientation, against a deterministic 64×32 EXIF-Orientation-6 fixture),
+D2 (YAML wikilink round-trip, including `frontmatterLinks` rename-tracking), and
+confirms F9 inside Obsidian's own iOS webview. See `probes/README.md` for how to
+read each result and what each outcome changes. All three are 10-minute checks
+that would each cost a day if found late.
 
 **Phase 1a — Pipeline + command, iOS-first (1½ days).** Settings → `core/` →
 ports → `ui/file-picker.ts` → `triggers/command.ts` with the full target

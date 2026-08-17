@@ -1,0 +1,8 @@
+{
+	"id": "cip-probe",
+	"name": "CIP Probe (throwaway)",
+	"version": "0.0.1",
+	"minAppVersion": "1.4.0",
+	"description": "Phase 0 diagnostics for Cover Image Picker. Not for release.",
+	"isDesktopOnly": false
+}
