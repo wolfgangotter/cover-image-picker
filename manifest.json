@@ -1,7 +1,7 @@
 {
 	"id": "cover-image-picker",
 	"name": "Cover Image Picker",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"minAppVersion": "1.13.0",
 	"description": "Pick, resize and store cover images directly from YAML frontmatter properties. Works on iOS.",
 	"author": "Wolfgang Otter",

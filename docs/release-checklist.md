@@ -1,0 +1,83 @@
+# Release checklist
+
+Phase 4 of `implementation-plan.md`. Everything in §1 is done; §2 and §3 need a
+GitHub repository and your explicit go-ahead, because they are public and
+effectively irreversible.
+
+---
+
+## 1. Repository state — done
+
+- [x] `LICENSE` carries the right copyright holder (it still said "Dynalist Inc."
+      from the sample plugin — a genuine blocker, since it misattributed the work)
+- [x] `manifest.json` version `1.0.0`, `minAppVersion` `1.13.0`,
+      `isDesktopOnly: false`, stable `id` (`cover-image-picker` — never change
+      this after release)
+- [x] `versions.json` maps `1.0.0` → `1.13.0`
+- [x] `package.json` version matches the manifest
+- [x] README states requirements, install, privacy and permissions
+- [x] `main.js` is gitignored; CI builds it for the release
+- [x] Quality gate clean: `npm run check` (typecheck + lint + 148 tests),
+      zero errors **and** zero warnings
+
+## 2. Before tagging
+
+- [ ] **Add a screenshot** and reference it in the README (see the TODO comment
+      at the top). Nothing here needs it to work, but the catalogue listing is
+      much weaker without one.
+- [ ] **Create `main`.** All history is currently linear on feature branches and
+      no `main` exists yet; the release workflow and the catalogue both assume a
+      default branch.
+- [ ] **Run the manual matrix below.** Several rows have never been exercised.
+- [ ] Push to a public GitHub repository.
+
+### Manual matrix
+
+Rows marked ✅ have been verified during development. The rest have not, and a
+first release is the wrong time to find out.
+
+| Case | Status |
+|---|---|
+| Desktop: command, Live Preview | ✅ |
+| Desktop: property button, empty and populated | ✅ |
+| Desktop: drag & drop onto a property row | ✅ |
+| Desktop: drop on a non-matching property / note body behaves as stock | ✅ |
+| iOS: command palette, gallery and camera | ✅ |
+| iOS: property button, both states | ✅ |
+| iOS: source mode via the toolbar | ✅ |
+| Both property-row toggles, on and off | ✅ |
+| Ambiguous target (two matching properties) | ✅ |
+| **Paste** into a property, source mode and Live Preview | ⬜ never tested |
+| **Per-property sizes** actually applied to the output | ⬜ never tested |
+| **Real camera photo** end to end — orientation and file size | ⬜ Q2 was proven with a synthetic fixture only |
+| **12 MP photo** on iOS — memory behaviour | ⬜ |
+| **iPad** | ⬜ |
+| Note in a subfolder, and each storage mode | ⬜ |
+| Filename with spaces / non-ASCII | ⬜ |
+| Properties set to `Hidden` in Obsidian settings (F11) | ⬜ |
+| Popout window (desktop) | ⬜ |
+| Disable/enable the plugin: no leaked listeners or stray buttons | ⬜ |
+
+## 3. Release and submission
+
+1. Merge to `main` and push.
+2. Tag exactly `1.0.0` — **no leading `v`**; the tag must equal the manifest
+   version or the catalogue check fails.
+   ```bash
+   git tag 1.0.0 && git push origin 1.0.0
+   ```
+3. The release workflow builds and creates a **draft** release with `main.js`,
+   `manifest.json` and `styles.css` attached as individual files. Review it and
+   publish.
+4. Submit to the catalogue: fork
+   [`obsidianmd/obsidian-releases`](https://github.com/obsidianmd/obsidian-releases),
+   add an entry to `community-plugins.json`, and open a PR. Expect review
+   comments; the automated checks look at the manifest, the tag, and the release
+   assets.
+
+## 4. After release
+
+- Never change the plugin `id`.
+- Bump with `npm version <patch|minor|major>`, which runs `version-bump.mjs` to
+  keep `manifest.json` and `versions.json` in step.
+- `minAppVersion` only moves up when a newer API is actually used.

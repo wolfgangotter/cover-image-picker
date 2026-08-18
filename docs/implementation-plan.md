@@ -1,6 +1,6 @@
 # Cover Image Picker — Implementation Plan
 
-Status: Phases 1a, 1b, 2 and 3 built; Phase 4 (release) remains. Derived from `docs/scaffolding.md`, the official
+Status: feature-complete; release prep done, publishing pending. Derived from `docs/scaffolding.md`, the official
 `obsidian-sample-plugin`, and Obsidian API typings **v1.13.1**.
 
 ---
@@ -587,9 +587,12 @@ note 3) stays unbuilt — it touches files the user did not ask us to touch, and
 should only ship opt-in if it is wanted at all. WASM WebP only if D1 is ever
 revisited.
 
-**Phase 4 — Release.** README with a screenshot and an explicit "no network, no
-telemetry, EXIF stripped" statement, `versions.json`, tagged release with the
-three assets, community-plugin submission PR.
+**Phase 4 — Release prep done (2026-08-18); publishing still pending.**
+Repository state is ready: licence corrected (it still carried the sample
+plugin's copyright holder), version 1.0.0, README with requirements, install,
+and the privacy statement. Screenshot, the `main` branch, the untested rows of
+the manual matrix, and everything public are tracked in
+[`release-checklist.md`](release-checklist.md).
 
 ---
 
