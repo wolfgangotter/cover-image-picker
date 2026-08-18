@@ -51,11 +51,11 @@ first release is the wrong time to find out.
 | **Real camera photo** end to end — orientation and file size | ✅ |
 | **12 MP photo** on iOS — memory behaviour | ⬜ |
 | **iPad** | ⬜ |
-| Note in a subfolder, and each storage mode | ⬜ |
-| Filename with spaces / non-ASCII | ⬜ |
+| Note in a subfolder, and each storage mode | ✅ automated (`tests/vault-storage.test.ts`) |
+| Filename with spaces / non-ASCII | ✅ automated (`tests/naming.test.ts`) |
 | Properties set to `Hidden` in Obsidian settings (F11) | ⬜ |
 | Popout window (desktop) | ⬜ |
-| Disable/enable the plugin: no leaked listeners or stray buttons | ⬜ |
+| Disable/enable the plugin: no leaked listeners or stray buttons | ✅ automated (`tests/lifecycle.test.ts`) |
 
 ## 3. Release and submission
 

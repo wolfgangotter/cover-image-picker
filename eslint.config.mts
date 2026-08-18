@@ -43,6 +43,8 @@ export default defineConfig(
 			// The stub installs Obsidian's own globals, which is the thing
 			// under test; there is no popout window in a vitest run.
 			'obsidianmd/no-global-this': 'off',
+			// The stub implements `instanceOf`; it cannot call itself.
+			'obsidianmd/prefer-instanceof': 'off',
 		},
 	},
 	{

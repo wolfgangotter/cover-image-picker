@@ -10,6 +10,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import CoverImagePickerPlugin from '../src/main';
 import { createMockApp, type MockApp } from './stubs/obsidian';
+import { installObsidianDom } from './stubs/dom';
 
 /** The stub Plugin records these; the real `Plugin` type does not expose them. */
 interface Recorded {
@@ -20,17 +21,7 @@ const recorded = (plugin: CoverImagePickerPlugin) => plugin as unknown as Record
 
 function makePlugin(): CoverImagePickerPlugin {
 	const app: MockApp = createMockApp();
-	// Obsidian's globals, which the plugin uses for DOM work.
-	const g = globalThis as unknown as Record<string, unknown>;
-	g.activeDocument = document;
-	g.activeWindow = window;
-	g.createEl = (tag: string, o?: { cls?: string }) => {
-		const el = document.createElement(tag);
-		if (o?.cls) el.className = o.cls;
-		return el;
-	};
-	g.createDiv = (o?: { cls?: string }) => (g.createEl as (t: string, o?: unknown) => HTMLElement)('div', o);
-
+	installObsidianDom();
 	const plugin = new CoverImagePickerPlugin(app as never, { id: 'cover-image-picker' } as never);
 	// Obsidian calls onload() on an already-loaded Component, so addChild()
 	// loads its children immediately. Without this the child onloads - where
@@ -40,26 +31,7 @@ function makePlugin(): CoverImagePickerPlugin {
 }
 
 beforeEach(() => {
-	// Obsidian augments the DOM prototypes; the few we call need to exist.
-	const proto = HTMLElement.prototype as unknown as Record<string, unknown>;
-	proto.addClass = function (this: HTMLElement, cls: string) {
-		this.classList.add(cls);
-	};
-	proto.removeClass = function (this: HTMLElement, cls: string) {
-		this.classList.remove(cls);
-	};
-	proto.removeClasses = function (this: HTMLElement, classes: string[]) {
-		this.classList.remove(...classes);
-	};
-	proto.toggleClass = function (this: HTMLElement, cls: string, on: boolean) {
-		this.classList.toggle(cls, on);
-	};
-	proto.hasClass = function (this: HTMLElement, cls: string) {
-		return this.classList.contains(cls);
-	};
-	proto.setText = function (this: HTMLElement, text: string) {
-		this.textContent = text;
-	};
+	installObsidianDom();
 });
 
 describe('plugin load', () => {
