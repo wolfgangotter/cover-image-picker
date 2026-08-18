@@ -72,10 +72,21 @@ export class PropertyDomAdapter extends Component {
 		this.decorateAll();
 	}
 
+	/**
+	 * Sweeps every open markdown view as well as the active document, so
+	 * buttons in popout windows are cleaned up too - those live in a different
+	 * document and `activeDocument` alone would miss them.
+	 */
 	private removeAllButtons(): void {
-		activeDocument.querySelectorAll(`.${BUTTON_CLASS}`).forEach((el) => {
-			el.remove();
-		});
+		const roots: ParentNode[] = [activeDocument];
+		for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
+			if (leaf.view instanceof MarkdownView) roots.push(leaf.view.contentEl);
+		}
+		for (const root of roots) {
+			root.querySelectorAll(`.${BUTTON_CLASS}`).forEach((el) => {
+				el.remove();
+			});
+		}
 	}
 
 	private matchConfig(): MatchConfig {

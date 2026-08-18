@@ -31,6 +31,8 @@ export function createInsertButton(
 	button.addEventListener('click', (evt) => {
 		evt.preventDefault();
 		evt.stopPropagation();
+		// A button that outlived its removal must be inert, not merely invisible.
+		if (!plugin.settings.showPropertyButton) return;
 		const target = getTarget();
 		if (!target) return;
 
@@ -46,6 +48,7 @@ export function createInsertButton(
 	button.addEventListener('keydown', (evt) => {
 		if (evt.key !== 'Enter' && evt.key !== ' ') return;
 		evt.preventDefault();
+		if (!plugin.settings.showPropertyButton) return;
 		const target = getTarget();
 		if (target) void insertForTarget(plugin, target);
 	});

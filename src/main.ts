@@ -47,7 +47,17 @@ export default class CoverImagePickerPlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
-		// Property names or the button toggle may have just changed.
+		this.refreshPropertyButtons();
+	}
+
+	/**
+	 * Re-sync the property-row buttons with the current settings.
+	 *
+	 * Called both after a write and when the settings tab closes, because the
+	 * settings modal is outside the DOM subtree the adapter observes and a
+	 * toggle there produces no mutation it would otherwise notice.
+	 */
+	refreshPropertyButtons(): void {
 		this.propertyDom.refresh();
 		this.focusTracker.forget();
 	}

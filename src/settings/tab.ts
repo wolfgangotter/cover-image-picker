@@ -54,6 +54,20 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 		this.update();
 	}
 
+	/**
+	 * Closing the settings tab re-syncs the property buttons.
+	 *
+	 * The adapter's MutationObserver watches `workspace.containerEl`, but the
+	 * settings modal lives outside it, so toggling a setting produces no
+	 * mutation it can see. Relying only on the write path left a stale button
+	 * on screen after "Show a button on property rows" was turned off; this
+	 * makes the resync independent of how the value got persisted.
+	 */
+	override hide(): void {
+		super.hide();
+		this.plugin.refreshPropertyButtons();
+	}
+
 	override getSettingDefinitions(): SettingDefinitionItem[] {
 		const s = () => this.plugin.settings;
 
