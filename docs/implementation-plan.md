@@ -1,6 +1,6 @@
 # Cover Image Picker — Implementation Plan
 
-Status: proposal for review. Derived from `docs/scaffolding.md`, the official
+Status: Phase 1a built; Phase 1b next. Derived from `docs/scaffolding.md`, the official
 `obsidian-sample-plugin`, and Obsidian API typings **v1.13.1**.
 
 ---
@@ -87,10 +87,10 @@ src/
   settings/
     schema.ts                    ~90   interfaces + DEFAULT_SETTINGS + migration by schemaVersion
     validate.ts                  ~80   runtime coercion of loaded data (never trust data.json)
-    tab.ts                       ~220  PluginSettingTab UI
-    folder-suggest.ts            ~60   AbstractInputSuggest<TFolder> for the folder picker
+    tab.ts                       ~210  declarative getSettingDefinitions() (1.13+)
   core/                          ← zero obsidian imports, 100% unit-tested
     types.ts                     ~70   ImageInsertRequest, ProcessedImage, ResizeSpec, EncodeResult
+    settle-once.ts               ~20   one-shot callback guard for modal result races
     frontmatter-scan.ts          ~90   cursor-offset → property key (source mode); pure, testable
     validate-source.ts           ~90   size cap, MIME allowlist, magic-byte sniff
     decode.ts                    ~90   Blob → ImageBitmap|HTMLImageElement, orientation handling
@@ -430,10 +430,16 @@ read-only DOM observation. Cast-to-`any` access to Obsidian internals is the
 most common reason plugins break on updates and it is also flagged in review by
 `eslint-plugin-obsidianmd`.
 
-### D4 — `isDesktopOnly: false`, `minAppVersion`
-Set `minAppVersion` to the oldest version whose property DOM we actually verify
-against — suggest `1.4.0` (when Properties shipped) only if tested there;
-otherwise be honest and set the version you test on.
+### D4 — `isDesktopOnly: false`, `minAppVersion` → **1.13.0** (decided 2026-08-18)
+
+Deliberately targeting the newest API rather than the widest audience. This buys
+the **declarative settings API** (`getSettingDefinitions`), which means Obsidian
+renders the controls and — more usefully — indexes them for settings search.
+`settings/tab.ts` is data, not DOM code, and `settings/folder-suggest.ts` is
+deleted outright: the `folder` control type replaces it.
+
+The cost is real: anyone below 1.13.0 cannot install the plugin. Revisit only if
+that turns out to matter.
 
 ---
 
