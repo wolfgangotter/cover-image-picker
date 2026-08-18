@@ -1,6 +1,6 @@
 # Cover Image Picker — Implementation Plan
 
-Status: Phases 1a, 1b and 2 built. Derived from `docs/scaffolding.md`, the official
+Status: Phases 1a, 1b, 2 and 3 built; Phase 4 (release) remains. Derived from `docs/scaffolding.md`, the official
 `obsidian-sample-plugin`, and Obsidian API typings **v1.13.1**.
 
 ---
@@ -91,6 +91,7 @@ src/
   core/                          ← zero obsidian imports, 100% unit-tested
     types.ts                     ~70   ImageInsertRequest, ProcessedImage, ResizeSpec, EncodeResult
     settle-once.ts               ~20   one-shot callback guard for modal result races
+    overrides.ts                 ~50   per-property resize resolution
     focus-memory.ts              ~30   pure freshness rules for the remembered focus
     drop-target.ts               ~75   pure drop decisions: which key, which file, ours or not
     frontmatter-scan.ts          ~90   cursor-offset → property key (source mode); pure, testable
@@ -570,10 +571,17 @@ not claimed. Every failure mode falls through to stock Obsidian.
 Acceptance: dropping onto a non-matching property or the note body behaves
 exactly as stock Obsidian.
 
-**Phase 3 — Polish (1–2 days).** Camera capture (`capture` attribute); paste
-handling; replace/remove menu; PNG/JPEG format choice; per-property overrides.
-Optional and opt-in: rename the image when the note is renamed (D2 note 3).
-WASM WebP only if D1 is ever revisited.
+**Phase 3 — ✅ BUILT (2026-08-18).** Camera capture via the `capture`
+attribute, exposed as a mobile-only command and a menu item rather than an
+extra tap on the common path. Paste handling in both source mode (cursor-based,
+so no DOM guessing needed) and on property rows. Per-property resize overrides,
+rendered as an Obsidian `list` of inline sub-pages. The replace/remove menu and
+the PNG/JPEG choice already shipped in 1b and 1a.
+
+**Still open, deliberately:** renaming the image when the note is renamed (D2
+note 3) stays unbuilt — it touches files the user did not ask us to touch, and
+should only ship opt-in if it is wanted at all. WASM WebP only if D1 is ever
+revisited.
 
 **Phase 4 — Release.** README with a screenshot and an explicit "no network, no
 telemetry, EXIF stripped" statement, `versions.json`, tagged release with the

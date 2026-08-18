@@ -1,5 +1,6 @@
-import { Notice, TFile, type MarkdownFileInfo, type MarkdownView } from 'obsidian';
+import { Notice, TFile, type Editor, type MarkdownFileInfo, type MarkdownView } from 'obsidian';
 import { carriesFiles, firstSupportedImage, keyFromUpwardLines } from '../core/drop-target';
+import { propertyKeyAtOffset } from '../core/frontmatter-scan';
 import { isTargetProperty, type MatchConfig } from '../core/property-match';
 import type { InsertionTarget } from '../core/types';
 import { runPipeline } from './insert';
@@ -40,6 +41,63 @@ export function registerDragAndDrop(plugin: CoverImagePickerPlugin): void {
 			void runPipeline(plugin, file, target);
 		}),
 	);
+
+	registerPaste(plugin);
+}
+
+/**
+ * Source-mode paste.
+ *
+ * Unlike a drop, a paste always lands at the cursor, so the target can be read
+ * straight from the editor rather than from rendered lines - no DOM guessing.
+ */
+function registerPaste(plugin: CoverImagePickerPlugin): void {
+	plugin.registerEvent(
+		plugin.app.workspace.on('editor-paste', (evt, editor, info) => {
+			if (evt.defaultPrevented) return;
+			if (!plugin.settings.acceptDroppedImages) return;
+
+			const files = Array.from(evt.clipboardData?.files ?? []);
+			if (files.length === 0) return;
+
+			const target = pasteTarget(plugin, editor, info);
+			if (!target) return; // Not in one of our properties: stock behaviour.
+
+			const index = firstSupportedImage(files);
+			const file = index === -1 ? null : files[index];
+			if (!file) return; // Not an image we handle; let Obsidian have it.
+
+			evt.preventDefault();
+			void runPipeline(plugin, file, target);
+		}),
+	);
+}
+
+function pasteTarget(
+	plugin: CoverImagePickerPlugin,
+	editor: Editor,
+	info: MarkdownView | MarkdownFileInfo,
+): InsertionTarget | null {
+	const file = info.file;
+	if (!(file instanceof TFile) || file.extension !== 'md') return null;
+
+	let key: string | null = null;
+	try {
+		key = propertyKeyAtOffset(editor.getValue(), editor.posToOffset(editor.getCursor()));
+	} catch {
+		return null;
+	}
+	if (!key) return null;
+
+	const settings = plugin.settings;
+	const config: MatchConfig = {
+		propertyNames: settings.propertyNames,
+		matchMode: settings.matchMode,
+		caseSensitive: settings.caseSensitive,
+	};
+	if (!isTargetProperty(key, config)) return null;
+
+	return { notePath: file.path, noteName: file.basename, propertyKey: key };
 }
 
 function resolveDropTarget(

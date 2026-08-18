@@ -1,4 +1,6 @@
-import { PluginSettingTab, type App, type SettingDefinitionItem } from 'obsidian';
+import { Notice, PluginSettingTab, type App, type SettingDefinitionItem } from 'obsidian';
+import { overridableNames } from '../core/overrides';
+import type { CoverImagePickerSettings } from './schema';
 import { validateSettings } from './validate';
 import type CoverImagePickerPlugin from '../main';
 
@@ -15,35 +17,24 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
-	/** Keys are dotted to address our nested settings; one level is enough. */
+	/**
+	 * Dotted keys address nested settings to any depth, including array
+	 * indices - the per-property overrides use keys like
+	 * `overrides.0.resize.width`.
+	 */
 	override getControlValue(key: string): unknown {
-		const settings = this.plugin.settings;
 		// Stored as an array, edited as a comma-separated list.
-		if (key === 'propertyNames') return settings.propertyNames.join(', ');
-
-		const [group, leaf] = key.split('.');
-		const record = settings as unknown as Record<string, unknown>;
-		if (leaf === undefined) return record[key];
-
-		const section = record[group ?? ''] as Record<string, unknown> | undefined;
-		return section?.[leaf];
+		if (key === 'propertyNames') return this.plugin.settings.propertyNames.join(', ');
+		return readPath(this.plugin.settings, key.split('.'));
 	}
 
 	override async setControlValue(key: string, value: unknown): Promise<void> {
-		const record = this.plugin.settings as unknown as Record<string, unknown>;
-
 		if (key === 'propertyNames') {
-			record.propertyNames = String(value)
+			this.plugin.settings.propertyNames = String(value)
 				.split(',')
 				.map((name) => name.trim());
 		} else {
-			const [group, leaf] = key.split('.');
-			if (leaf === undefined) {
-				record[key] = value;
-			} else {
-				const section = record[group ?? ''] as Record<string, unknown> | undefined;
-				if (section) section[leaf] = value;
-			}
+			writePath(this.plugin.settings, key.split('.'), value);
 		}
 
 		// Re-validate the whole object so a single edit can never leave the rest
@@ -66,6 +57,111 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 	override hide(): void {
 		super.hide();
 		this.plugin.refreshPropertyRows();
+	}
+
+	/**
+	 * Per-property resize overrides.
+	 *
+	 * Only resize is overridable: it is the one axis that genuinely differs
+	 * per property (a banner is wide and short, a cover is 16:9), and keeping
+	 * it to one axis keeps the list readable.
+	 */
+	private overridesList(): SettingDefinitionItem {
+		const settings = this.plugin.settings;
+
+		return {
+			type: 'list',
+			heading: 'Per-property sizes',
+			emptyState: 'Every property uses the size above. Add one to give a property its own.',
+			addItem: {
+				name: 'Add a per-property size',
+				action: () => void this.addOverride(),
+			},
+			onDelete: (index) => void this.removeOverride(index),
+			// Each override is an inline sub-page, which is what a list accepts
+			// and also keeps the summary readable at a glance.
+			items: settings.overrides.map((override, index) => ({
+				type: 'page' as const,
+				name: override.property,
+				displayValue: () => describeResize(this.plugin.settings.overrides[index]?.resize),
+				items: [
+					{
+						name: 'Resize',
+						control: {
+							type: 'dropdown' as const,
+							key: `overrides.${index}.resize.mode`,
+							options: {
+								box: 'Fit a width and height',
+								width: 'Width only',
+								height: 'Height only',
+								none: 'Do not resize',
+							},
+						},
+					},
+					{
+						name: 'Width',
+						visible: () => {
+							const mode = this.plugin.settings.overrides[index]?.resize.mode;
+							return mode === 'box' || mode === 'width';
+						},
+						control: {
+							type: 'number' as const,
+							key: `overrides.${index}.resize.width`,
+							defaultValue: 1600,
+						},
+					},
+					{
+						name: 'Height',
+						visible: () => {
+							const mode = this.plugin.settings.overrides[index]?.resize.mode;
+							return mode === 'box' || mode === 'height';
+						},
+						control: {
+							type: 'number' as const,
+							key: `overrides.${index}.resize.height`,
+							defaultValue: 900,
+						},
+					},
+					{
+						name: 'Fit',
+						visible: () => this.plugin.settings.overrides[index]?.resize.mode === 'box',
+						control: {
+							type: 'dropdown' as const,
+							key: `overrides.${index}.resize.fit`,
+							options: { cover: 'Cover', contain: 'Contain', stretch: 'Stretch' },
+						},
+					},
+				],
+			})),
+		};
+	}
+
+	private async addOverride(): Promise<void> {
+		const settings = this.plugin.settings;
+		const available = overridableNames(
+			settings.propertyNames,
+			settings.overrides,
+			settings.caseSensitive,
+		);
+		const next = available[0];
+		if (next === undefined) {
+			new Notice('Every configured property already has its own size.');
+			return;
+		}
+
+		settings.overrides.push({
+			property: next,
+			// Seeded from the vault-wide setting so the row starts somewhere sane.
+			resize: { ...settings.resize },
+		});
+		await this.plugin.saveSettings();
+		this.update();
+	}
+
+	private async removeOverride(index: number): Promise<void> {
+		this.plugin.settings.overrides.splice(index, 1);
+		await this.plugin.saveSettings();
+		this.update();
 	}
 
 	override getSettingDefinitions(): SettingDefinitionItem[] {
@@ -218,6 +314,7 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 					},
 				],
 			},
+			this.overridesList(),
 			{
 				type: 'group',
 				heading: 'Property rows',
@@ -228,8 +325,8 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 						control: { type: 'toggle', key: 'showPropertyButton' },
 					},
 					{
-						name: 'Accept images dropped on property rows',
-						desc: 'Drag an image onto a matching property in Live Preview to set it. Dropping onto the note itself is unaffected.',
+						name: 'Accept images dropped or pasted on property rows',
+						desc: 'Drag or paste an image onto a matching property to set it. Dropping and pasting elsewhere in the note is unaffected.',
 						control: { type: 'toggle', key: 'acceptDroppedImages' },
 					},
 				],
@@ -259,5 +356,45 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 				],
 			},
 		];
+	}
+}
+
+type Indexable = Record<string, unknown>;
+
+function readPath(root: unknown, path: readonly string[]): unknown {
+	let current: unknown = root;
+	for (const segment of path) {
+		if (current === null || typeof current !== 'object') return undefined;
+		current = (current as Indexable)[segment];
+	}
+	return current;
+}
+
+/** Writes only into containers that already exist; never invents structure. */
+function writePath(root: unknown, path: readonly string[], value: unknown): void {
+	const last = path.at(-1);
+	if (last === undefined) return;
+
+	let current: unknown = root;
+	for (const segment of path.slice(0, -1)) {
+		if (current === null || typeof current !== 'object') return;
+		current = (current as Indexable)[segment];
+	}
+	if (current === null || typeof current !== 'object') return;
+	(current as Indexable)[last] = value;
+}
+
+/** One-line summary of an override, shown on its list entry. */
+function describeResize(resize: CoverImagePickerSettings['resize'] | undefined): string {
+	if (!resize) return '';
+	switch (resize.mode) {
+		case 'none':
+			return 'Original size';
+		case 'width':
+			return `${resize.width ?? '?'} px wide`;
+		case 'height':
+			return `${resize.height ?? '?'} px tall`;
+		case 'box':
+			return `${resize.width ?? '?'}×${resize.height ?? '?'} ${resize.fit}`;
 	}
 }

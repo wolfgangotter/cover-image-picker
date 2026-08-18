@@ -13,9 +13,10 @@ import type CoverImagePickerPlugin from '../main';
 export async function insertForTarget(
 	plugin: CoverImagePickerPlugin,
 	target: InsertionTarget,
+	options: { capture?: boolean } = {},
 ): Promise<void> {
 	// Opened before any await, and never from behind a modal or menu (F9).
-	const file = await plugin.filePicker.open();
+	const file = await plugin.filePicker.open(options);
 	if (!file) return;
 	await runPipeline(plugin, file, target);
 }

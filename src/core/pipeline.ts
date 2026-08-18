@@ -6,6 +6,7 @@
 
 import { CoverImageError } from './errors';
 import { buildBasename } from './naming';
+import { resolveResizeSpec } from './overrides';
 import { isTargetProperty, type MatchConfig } from './property-match';
 import { decodeImage, drawResized } from './raster';
 import { computeResizePlan } from './resize';
@@ -84,7 +85,13 @@ export class InsertionPipeline {
 		try {
 			assertPixelBudget(decoded.size.width, decoded.size.height, settings.encode.maxSourcePixels);
 			onProgress?.('resizing');
-			canvas = drawResized(decoded, computeResizePlan(decoded.size, settings.resize));
+			const spec = resolveResizeSpec(
+				target.propertyKey,
+				settings.overrides,
+				settings.resize,
+				settings.caseSensitive,
+			);
+			canvas = drawResized(decoded, computeResizePlan(decoded.size, spec));
 		} finally {
 			decoded.release();
 		}

@@ -1,3 +1,4 @@
+import type { PropertyOverride } from '../core/overrides';
 import type { CollisionPolicy, LinkFormat, OutputFormat, ResizeFit, ResizeMode } from '../core/types';
 
 export type StorageMode = 'vault-root' | 'fixed-folder' | 'note-folder' | 'obsidian-attachments';
@@ -29,6 +30,9 @@ export interface CoverImagePickerSettings {
 		fit: ResizeFit;
 		allowUpscale: boolean;
 	};
+
+	/** Per-property resize overrides; anything not listed inherits `resize`. */
+	overrides: PropertyOverride[];
 
 	encode: {
 		format: OutputFormat;
@@ -72,6 +76,7 @@ export const DEFAULT_SETTINGS: CoverImagePickerSettings = {
 		fit: 'cover',
 		allowUpscale: false,
 	},
+	overrides: [],
 	encode: {
 		format: 'webp',
 		quality: 75,

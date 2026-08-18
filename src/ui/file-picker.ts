@@ -50,10 +50,19 @@ export class FilePicker extends Component {
 	 * never be reached from behind a modal or menu - see F9 in the plan. The
 	 * returned promise stays pending if the user cancels, which is why the
 	 * caller must not hold resources across the await.
+	 *
+	 * `capture` asks the OS for the camera directly instead of the photo
+	 * sheet. It is ignored on desktop, where there is nothing to capture with.
 	 */
-	open(): Promise<File | null> {
+	open(options: { capture?: boolean } = {}): Promise<File | null> {
 		const input = this.input;
 		if (!input) return Promise.resolve(null);
+
+		if (options.capture) {
+			input.setAttribute('capture', 'environment');
+		} else {
+			input.removeAttribute('capture');
+		}
 
 		// A second open supersedes the first rather than stacking listeners.
 		this.pending?.(null);

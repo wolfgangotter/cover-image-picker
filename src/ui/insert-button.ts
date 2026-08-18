@@ -1,4 +1,4 @@
-import { Menu, Notice, setIcon, setTooltip, TFile } from 'obsidian';
+import { Menu, Notice, Platform, setIcon, setTooltip, TFile } from 'obsidian';
 import type { InsertionTarget } from '../core/types';
 import { insertForTarget } from '../triggers/insert';
 import type CoverImagePickerPlugin from '../main';
@@ -74,6 +74,17 @@ function showReplaceMenu(plugin: CoverImagePickerPlugin, target: InsertionTarget
 			.setIcon('image-plus')
 			.onClick(() => void insertForTarget(plugin, target)),
 	);
+
+	if (Platform.isMobileApp) {
+		menu.addItem((item) =>
+			item
+				.setTitle('Take a photo')
+				.setIcon('camera')
+				// Safe under F9: tapping a menu item is itself a fresh gesture,
+				// as long as the picker opens synchronously from here.
+				.onClick(() => void insertForTarget(plugin, target, { capture: true })),
+		);
+	}
 
 	const linked = plugin.frontmatter.resolveLinkedFile(target);
 	if (linked) {

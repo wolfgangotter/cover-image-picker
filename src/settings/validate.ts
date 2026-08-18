@@ -4,7 +4,15 @@
  * so one bad value never costs the user their other settings.
  */
 
-import type { CollisionPolicy, LinkFormat, OutputFormat, ResizeFit, ResizeMode } from '../core/types';
+import type { PropertyOverride } from '../core/overrides';
+import type {
+	CollisionPolicy,
+	LinkFormat,
+	OutputFormat,
+	ResizeFit,
+	ResizeMode,
+	ResizeSpec,
+} from '../core/types';
 import { DEFAULT_SETTINGS, type CoverImagePickerSettings, type MatchMode, type StorageMode } from './schema';
 
 type Unknown = Record<string, unknown>;
@@ -69,6 +77,45 @@ export function normalizeFolder(value: unknown, fallback: string): string {
 	return cleaned;
 }
 
+/** Shared by the vault-wide resize block and every per-property override. */
+function resizeSpec(value: unknown, fallback: ResizeSpec): ResizeSpec {
+	const resize = obj(value);
+	return {
+		mode: oneOf<ResizeMode>(resize.mode, ['none', 'width', 'height', 'box'], fallback.mode),
+		width: nullableInt(resize.width, 1, 20000, fallback.width),
+		height: nullableInt(resize.height, 1, 20000, fallback.height),
+		fit: oneOf<ResizeFit>(resize.fit, ['cover', 'contain', 'stretch'], fallback.fit),
+		allowUpscale: bool(resize.allowUpscale, fallback.allowUpscale),
+	};
+}
+
+/**
+ * Overrides are dropped rather than repaired when they name nothing: an
+ * override for a property that does not exist is silent dead weight, and the
+ * list UI would show a row the user cannot reason about.
+ */
+export function normalizeOverrides(
+	value: unknown,
+	fallbackResize: ResizeSpec,
+	limit = 32,
+): PropertyOverride[] {
+	if (!Array.isArray(value)) return [];
+	const seen = new Set<string>();
+	const out: PropertyOverride[] = [];
+	for (const entry of value) {
+		const record = obj(entry);
+		if (typeof record.property !== 'string') continue;
+		const property = record.property.trim();
+		if (!property || property.length > 128) continue;
+		const key = property.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		out.push({ property, resize: resizeSpec(record.resize, fallbackResize) });
+		if (out.length >= limit) break;
+	}
+	return out;
+}
+
 export function validateSettings(raw: unknown): CoverImagePickerSettings {
 	const d = DEFAULT_SETTINGS;
 	const data = obj(raw);
@@ -100,13 +147,8 @@ export function validateSettings(raw: unknown): CoverImagePickerSettings {
 				d.naming.onCollision,
 			),
 		},
-		resize: {
-			mode: oneOf<ResizeMode>(resize.mode, ['none', 'width', 'height', 'box'], d.resize.mode),
-			width: nullableInt(resize.width, 1, 20000, d.resize.width),
-			height: nullableInt(resize.height, 1, 20000, d.resize.height),
-			fit: oneOf<ResizeFit>(resize.fit, ['cover', 'contain', 'stretch'], d.resize.fit),
-			allowUpscale: bool(resize.allowUpscale, d.resize.allowUpscale),
-		},
+		resize: resizeSpec(resize, d.resize),
+		overrides: normalizeOverrides(data.overrides, d.resize),
 		encode: {
 			format: oneOf<OutputFormat>(encode.format, ['webp', 'jpeg', 'png'], d.encode.format),
 			quality: int(encode.quality, 1, 100, d.encode.quality),
