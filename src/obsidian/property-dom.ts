@@ -66,7 +66,7 @@ export class PropertyDomAdapter extends Component {
 	override onunload(): void {
 		this.observer?.disconnect();
 		this.observer = null;
-		this.removeAllButtons();
+		this.removeAllDecorations();
 	}
 
 	/** Detaches every row listener and starts a fresh generation. */
@@ -77,8 +77,14 @@ export class PropertyDomAdapter extends Component {
 
 	/** Called when settings change: property names may no longer match. */
 	refresh(): void {
-		this.removeAllButtons();
+		this.removeAllDecorations();
 		this.decorateAll();
+	}
+
+	/** Whether anything at all needs attaching to property rows. */
+	private get enabled(): boolean {
+		const { showPropertyButton, acceptDroppedImages } = this.plugin.settings;
+		return showPropertyButton || acceptDroppedImages;
 	}
 
 	/**
@@ -86,7 +92,7 @@ export class PropertyDomAdapter extends Component {
 	 * buttons in popout windows are cleaned up too - those live in a different
 	 * document and `activeDocument` alone would miss them.
 	 */
-	private removeAllButtons(): void {
+	private removeAllDecorations(): void {
 		this.resetListeners();
 
 		const roots: ParentNode[] = [activeDocument];
@@ -115,8 +121,8 @@ export class PropertyDomAdapter extends Component {
 	}
 
 	private decorateAll(): void {
-		if (!this.plugin.settings.showPropertyButton) {
-			this.removeAllButtons();
+		if (!this.enabled) {
+			this.removeAllDecorations();
 			return;
 		}
 
@@ -137,23 +143,32 @@ export class PropertyDomAdapter extends Component {
 		this.warnOnceIfStructureMissing();
 	}
 
+	/**
+	 * The button and the drop zone are independent: either can be switched off
+	 * without disturbing the other, even though they attach to the same row.
+	 */
 	private decorateRow(row: HTMLElement, config: MatchConfig, notePath: string, noteName: string): void {
 		const key = propertyKeyOf(row);
-		const existing = row.querySelector(`.${BUTTON_CLASS}`);
+		const button = row.querySelector(`.${BUTTON_CLASS}`);
 
 		if (!key || !isTargetProperty(key, config)) {
 			// Settings may have changed since this row was decorated.
-			existing?.remove();
+			button?.remove();
 			return;
 		}
-		if (existing) return;
 
+		const settings = this.plugin.settings;
 		const target: InsertionTarget = { notePath, noteName, propertyKey: key };
-		const host = row.querySelector(VALUE_CELL) ?? row;
-		host.appendChild(createInsertButton(this.plugin, () => target));
+
+		if (settings.showPropertyButton && !button) {
+			const host = row.querySelector(VALUE_CELL) ?? row;
+			host.appendChild(createInsertButton(this.plugin, () => target));
+		} else if (!settings.showPropertyButton && button) {
+			button.remove();
+		}
 
 		// Desktop drag and drop onto the row itself (F5).
-		if (!row.hasClass(DROP_ZONE_CLASS)) {
+		if (settings.acceptDroppedImages && !row.hasClass(DROP_ZONE_CLASS)) {
 			attachDropZone(this.plugin, row, () => target, this.listeners.signal);
 		}
 	}

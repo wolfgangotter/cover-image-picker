@@ -118,6 +118,7 @@ export function validateSettings(raw: unknown): CoverImagePickerSettings {
 			format: oneOf<LinkFormat>(link.format, ['wikilink', 'markdown', 'path'], d.link.format),
 		},
 		showPropertyButton: bool(data.showPropertyButton, d.showPropertyButton),
+		acceptDroppedImages: bool(data.acceptDroppedImages, d.acceptDroppedImages),
 		deleteReplacedFile: bool(data.deleteReplacedFile, d.deleteReplacedFile),
 	};
 }

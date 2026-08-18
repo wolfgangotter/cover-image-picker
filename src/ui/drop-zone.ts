@@ -66,6 +66,8 @@ export function attachDropZone(
 			depth = 0;
 			setActive(false);
 			if (evt.defaultPrevented) return;
+			// A zone that outlived its removal must be inert, not just unstyled.
+			if (!plugin.settings.acceptDroppedImages) return;
 
 			const files = Array.from(evt.dataTransfer?.files ?? []);
 			if (files.length === 0) return;

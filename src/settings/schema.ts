@@ -42,8 +42,10 @@ export interface CoverImagePickerSettings {
 		format: LinkFormat;
 	};
 
-	/** Also the kill switch for the internal-DOM adapter (F1). */
+	/** Independent affordances that share an attachment point on the row. */
 	showPropertyButton: boolean;
+	acceptDroppedImages: boolean;
+	// Both off detaches the internal-DOM adapter entirely (the F1 kill switch).
 
 	/** Destructive; opt-in only. */
 	deleteReplacedFile: boolean;
@@ -80,5 +82,6 @@ export const DEFAULT_SETTINGS: CoverImagePickerSettings = {
 		format: 'wikilink',
 	},
 	showPropertyButton: true,
+	acceptDroppedImages: true,
 	deleteReplacedFile: false,
 };

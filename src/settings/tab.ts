@@ -55,7 +55,7 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Closing the settings tab re-syncs the property buttons.
+	 * Closing the settings tab re-syncs the property-row decorations.
 	 *
 	 * The adapter's MutationObserver watches `workspace.containerEl`, but the
 	 * settings modal lives outside it, so toggling a setting produces no
@@ -65,7 +65,7 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 	 */
 	override hide(): void {
 		super.hide();
-		this.plugin.refreshPropertyButtons();
+		this.plugin.refreshPropertyRows();
 	}
 
 	override getSettingDefinitions(): SettingDefinitionItem[] {
@@ -220,13 +220,24 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 			},
 			{
 				type: 'group',
-				heading: 'Output',
+				heading: 'Property rows',
 				items: [
 					{
 						name: 'Show a button on property rows',
-						desc: 'Adds an image button to matching properties in Live Preview. Turn off to use only the command.',
+						desc: 'Adds an image button to matching properties in Live Preview.',
 						control: { type: 'toggle', key: 'showPropertyButton' },
 					},
+					{
+						name: 'Accept images dropped on property rows',
+						desc: 'Drag an image onto a matching property in Live Preview to set it. Dropping onto the note itself is unaffected.',
+						control: { type: 'toggle', key: 'acceptDroppedImages' },
+					},
+				],
+			},
+			{
+				type: 'group',
+				heading: 'Output',
+				items: [
 					{
 						name: 'Link format',
 						desc: 'Wikilinks let Obsidian track renames. The other formats do not.',

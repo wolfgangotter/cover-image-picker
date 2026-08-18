@@ -547,8 +547,9 @@ image pipeline, and the frontmatter write before any fragile code exists.
 
 **Phase 1b — ✅ BUILT (2026-08-18).** `obsidian/property-dom.ts`,
 `ui/insert-button.ts`, `obsidian/focus-tracker.ts`, plus chain step 2.
-The F1 kill switch shipped as the **"Show a button on property rows"** setting,
-so the degraded mode is a user-facing toggle rather than a thought experiment.
+The F1 kill switch is the pair of **"Property rows"** toggles: with both off the
+adapter detaches entirely, so the degraded mode is a user-facing state rather
+than a thought experiment.
 Awaiting device testing: tap the button on a `cover` row in Live Preview on iOS,
 confirm no keyboard flash, and confirm the command still works with the toggle
 off.
