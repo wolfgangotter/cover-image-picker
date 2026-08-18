@@ -1,4 +1,5 @@
 import { SuggestModal, type App } from 'obsidian';
+import { settleOnce } from '../core/settle-once';
 
 export interface PropertyChoice {
 	key: string;
@@ -12,14 +13,15 @@ export interface PropertyChoice {
  * picked, so it never sits between the tap and the picker.
  */
 export class PropertySuggestModal extends SuggestModal<PropertyChoice> {
-	private resolved = false;
+	private readonly settle: (choice: PropertyChoice | null) => void;
 
 	constructor(
 		app: App,
 		private readonly choices: PropertyChoice[],
-		private readonly onChoose: (choice: PropertyChoice | null) => void,
+		onChoose: (choice: PropertyChoice | null) => void,
 	) {
 		super(app);
+		this.settle = settleOnce(onChoose);
 		this.setPlaceholder('Which property should hold the image?');
 	}
 
@@ -39,14 +41,15 @@ export class PropertySuggestModal extends SuggestModal<PropertyChoice> {
 	}
 
 	onChooseSuggestion(choice: PropertyChoice): void {
-		this.resolved = true;
-		this.onChoose(choice);
+		this.settle(choice);
 	}
 
 	override onClose(): void {
 		super.onClose();
-		// Dismissing without choosing must still settle the caller's promise.
-		if (!this.resolved) this.onChoose(null);
+		// Obsidian closes the modal BEFORE invoking onChooseSuggestion, so
+		// cancelling synchronously here would discard every real selection.
+		// Defer by a tick and let `settleOnce` give a genuine choice priority.
+		window.setTimeout(() => this.settle(null), 0);
 	}
 }
 

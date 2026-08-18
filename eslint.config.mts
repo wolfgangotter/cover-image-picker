@@ -31,4 +31,12 @@ export default defineConfig(
 		},
 	},
 	...obsidianmd.configs.recommended,
+	{
+		// Tests run in Node under vitest, where `window` does not exist, so the
+		// Obsidian popout-window timer rules do not apply.
+		files: ['tests/**/*.ts'],
+		rules: {
+			'obsidianmd/prefer-window-timers': 'off',
+		},
+	},
 );
