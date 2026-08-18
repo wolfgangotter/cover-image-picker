@@ -56,7 +56,7 @@ export default class CoverImagePickerPlugin extends Plugin {
 			stored = await this.loadData();
 		} catch (err) {
 			console.error('[cover-image-picker] data.json could not be read; using defaults', err);
-			new Notice('Settings were unreadable, so Cover Image Picker is using defaults.');
+			new Notice('Settings were unreadable, so defaults are in use.');
 			stored = undefined;
 		}
 		this.settings = validateSettings(stored);
