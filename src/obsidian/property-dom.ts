@@ -47,20 +47,43 @@ export class PropertyDomAdapter extends Component {
 		return this.plugin.app;
 	}
 
+	/**
+	 * Everything here is best-effort. This adapter is the one part of the
+	 * plugin coupled to Obsidian's internals (F1), so it must degrade to
+	 * "no inline button" rather than take the whole plugin down with it - a
+	 * throw in onload shows the user "failed to load plugin" and costs them
+	 * the command path too, which needs none of this.
+	 */
 	override onload(): void {
-		const rescan = debounce(() => this.decorateAll(), RESCAN_DELAY_MS, true);
+		try {
+			const rescan = debounce(() => this.safeDecorateAll(), RESCAN_DELAY_MS, true);
 
-		// Property rows are re-rendered on almost every editor interaction, so
-		// observe once at the workspace root and rescan on a debounce rather
-		// than trying to track individual views.
-		this.observer = new MutationObserver(() => rescan());
-		this.observer.observe(this.app.workspace.containerEl, { childList: true, subtree: true });
+			// Property rows are re-rendered on almost every editor interaction,
+			// so observe once at the workspace root and rescan on a debounce
+			// rather than trying to track individual views.
+			this.observer = new MutationObserver(() => rescan());
+			this.observer.observe(this.app.workspace.containerEl, { childList: true, subtree: true });
 
-		// Listed individually because the overloads are per-event-name.
-		this.registerEvent(this.app.workspace.on('layout-change', () => rescan()));
-		this.registerEvent(this.app.workspace.on('active-leaf-change', () => rescan()));
-		this.registerEvent(this.app.workspace.on('file-open', () => rescan()));
-		this.app.workspace.onLayoutReady(() => this.decorateAll());
+			// Listed individually because the overloads are per-event-name.
+			this.registerEvent(this.app.workspace.on('layout-change', () => rescan()));
+			this.registerEvent(this.app.workspace.on('active-leaf-change', () => rescan()));
+			this.registerEvent(this.app.workspace.on('file-open', () => rescan()));
+			this.app.workspace.onLayoutReady(() => this.safeDecorateAll());
+		} catch (err) {
+			console.error('[cover-image-picker] property row integration unavailable', err);
+		}
+	}
+
+	/** Never lets a DOM surprise escape into Obsidian's event loop. */
+	private safeDecorateAll(): void {
+		try {
+			this.decorateAll();
+		} catch (err) {
+			if (!this.warned) {
+				this.warned = true;
+				console.error('[cover-image-picker] could not decorate property rows', err);
+			}
+		}
 	}
 
 	override onunload(): void {
