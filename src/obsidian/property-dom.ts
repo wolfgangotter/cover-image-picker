@@ -16,6 +16,7 @@
 import { Component, MarkdownView, debounce, type App } from 'obsidian';
 import { isTargetProperty, type MatchConfig } from '../core/property-match';
 import type { InsertionTarget } from '../core/types';
+import { attachDropZone, DROP_ZONE_CLASS } from '../ui/drop-zone';
 import { BUTTON_CLASS, createInsertButton } from '../ui/insert-button';
 import type CoverImagePickerPlugin from '../main';
 
@@ -34,6 +35,8 @@ export function propertyKeyOf(row: HTMLElement): string | null {
 
 export class PropertyDomAdapter extends Component {
 	private observer: MutationObserver | null = null;
+	/** Owns every listener attached to Obsidian's rows, so all can be dropped at once. */
+	private listeners = new AbortController();
 	private warned = false;
 
 	constructor(private readonly plugin: CoverImagePickerPlugin) {
@@ -66,6 +69,12 @@ export class PropertyDomAdapter extends Component {
 		this.removeAllButtons();
 	}
 
+	/** Detaches every row listener and starts a fresh generation. */
+	private resetListeners(): void {
+		this.listeners.abort();
+		this.listeners = new AbortController();
+	}
+
 	/** Called when settings change: property names may no longer match. */
 	refresh(): void {
 		this.removeAllButtons();
@@ -78,6 +87,8 @@ export class PropertyDomAdapter extends Component {
 	 * document and `activeDocument` alone would miss them.
 	 */
 	private removeAllButtons(): void {
+		this.resetListeners();
+
 		const roots: ParentNode[] = [activeDocument];
 		for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
 			if (leaf.view instanceof MarkdownView) roots.push(leaf.view.contentEl);
@@ -85,6 +96,11 @@ export class PropertyDomAdapter extends Component {
 		for (const root of roots) {
 			root.querySelectorAll(`.${BUTTON_CLASS}`).forEach((el) => {
 				el.remove();
+			});
+			// The listeners are already gone; clear the marker so the rows are
+			// eligible for decoration again.
+			root.querySelectorAll(`.${DROP_ZONE_CLASS}`).forEach((el) => {
+				el.removeClasses([DROP_ZONE_CLASS, 'cip-drop-active']);
 			});
 		}
 	}
@@ -132,9 +148,14 @@ export class PropertyDomAdapter extends Component {
 		}
 		if (existing) return;
 
-		const host = row.querySelector(VALUE_CELL) ?? row;
 		const target: InsertionTarget = { notePath, noteName, propertyKey: key };
+		const host = row.querySelector(VALUE_CELL) ?? row;
 		host.appendChild(createInsertButton(this.plugin, () => target));
+
+		// Desktop drag and drop onto the row itself (F5).
+		if (!row.hasClass(DROP_ZONE_CLASS)) {
+			attachDropZone(this.plugin, row, () => target, this.listeners.signal);
+		}
 	}
 
 	/**

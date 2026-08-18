@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS, type CoverImagePickerSettings } from './settings/sche
 import { CoverImagePickerSettingTab } from './settings/tab';
 import { validateSettings } from './settings/validate';
 import { registerCommands } from './triggers/command';
+import { registerDragAndDrop } from './triggers/drag-drop';
 import { FilePicker } from './ui/file-picker';
 
 export default class CoverImagePickerPlugin extends Plugin {
@@ -38,6 +39,7 @@ export default class CoverImagePickerPlugin extends Plugin {
 		this.propertyDom = this.addChild(new PropertyDomAdapter(this));
 
 		registerCommands(this);
+		registerDragAndDrop(this);
 		this.addSettingTab(new CoverImagePickerSettingTab(this.app, this));
 	}
 

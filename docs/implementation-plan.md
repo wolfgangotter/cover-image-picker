@@ -1,6 +1,6 @@
 # Cover Image Picker — Implementation Plan
 
-Status: Phase 1a built; Phase 1b next. Derived from `docs/scaffolding.md`, the official
+Status: Phases 1a, 1b and 2 built. Derived from `docs/scaffolding.md`, the official
 `obsidian-sample-plugin`, and Obsidian API typings **v1.13.1**.
 
 ---
@@ -92,6 +92,7 @@ src/
     types.ts                     ~70   ImageInsertRequest, ProcessedImage, ResizeSpec, EncodeResult
     settle-once.ts               ~20   one-shot callback guard for modal result races
     focus-memory.ts              ~30   pure freshness rules for the remembered focus
+    drop-target.ts               ~75   pure drop decisions: which key, which file, ours or not
     frontmatter-scan.ts          ~90   cursor-offset → property key (source mode); pure, testable
     validate-source.ts           ~90   size cap, MIME allowlist, magic-byte sniff
     decode.ts                    ~90   Blob → ImageBitmap|HTMLImageElement, orientation handling
@@ -114,12 +115,13 @@ src/
     insert-button.ts             ~90   the inline icon injected into a matching property row
     file-picker.ts               ~80   persistent hidden <input type=file>, iOS-safe accept list
     property-suggest.ts          ~80   SuggestModal for ambiguous targets (§6 chain steps 4–5)
+    drop-zone.ts                 ~90   drag listeners for a property row (F5)
     progress.ts                  ~50   Notice-based progress + cancel
     confirm-replace.ts           ~70   Menu/Modal shown when property already has a value
   triggers/
     resolve-target.ts            ~110  the §6 resolution chain; steps 1–3 synchronous
     command.ts                   ~70   addCommand → mobile toolbar in source mode + palette (F4/F10)
-    drag-drop.ts                 ~110  dragover/drop on property rows + editor-drop fallback
+    drag-drop.ts                 ~95   source-mode editor-drop path
     paste.ts                     ~70   editor-paste (Phase 3)
 tests/
   core/*.test.ts                       resize math, naming, link format, validation
@@ -551,9 +553,21 @@ Awaiting device testing: tap the button on a `cover` row in Live Preview on iOS,
 confirm no keyboard flash, and confirm the command still works with the toggle
 off.
 
-**Phase 2 — Desktop drag & drop (1 day).** `drag-drop.ts` + drop affordance +
-`editor-drop` source-mode path. Acceptance: dropping onto a non-matching
-property or the note body behaves exactly as stock Obsidian.
+**Phase 2 — ✅ BUILT (2026-08-18).** `ui/drop-zone.ts` for property rows,
+`triggers/drag-drop.ts` for the source-mode `editor-drop` path, and
+`core/drop-target.ts` holding the pure "is this ours?" decisions.
+
+Note on source mode: there is **no public API for turning a pointer position
+into an editor offset** (no `posAtMouse`), so the drop point is resolved by
+reading the rendered `.cm-line` under the cursor and walking upward. The upward
+walk is what separates frontmatter from the body — from inside the block the
+first fence reached is the opening one at document line 0; from the body it is
+the closing fence with lines above it, and that case is refused. If the top of
+the document is virtualised away the walk cannot prove anything and the drop is
+not claimed. Every failure mode falls through to stock Obsidian.
+
+Acceptance: dropping onto a non-matching property or the note body behaves
+exactly as stock Obsidian.
 
 **Phase 3 — Polish (1–2 days).** Camera capture (`capture` attribute); paste
 handling; replace/remove menu; PNG/JPEG format choice; per-property overrides.
