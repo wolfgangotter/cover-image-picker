@@ -1,0 +1,42 @@
+/* Cover Image Picker */
+
+/* The reused file input must stay in the document to be clickable, but must
+   never be visible or focusable. */
+.cip-hidden-input {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.cip-suggest-key {
+	font-weight: var(--font-semibold);
+}
+
+.cip-suggest-value {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+/* Brief confirmation that a property row changed. */
+.metadata-property.cip-just-updated {
+	animation: cip-flash 1.2s ease-out;
+}
+
+@keyframes cip-flash {
+	0% {
+		background-color: var(--text-selection);
+	}
+	100% {
+		background-color: transparent;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.metadata-property.cip-just-updated {
+		animation: none;
+	}
+}
