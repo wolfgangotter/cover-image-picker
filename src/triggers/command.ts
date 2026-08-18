@@ -1,7 +1,6 @@
-import { MarkdownView, Notice, TFile } from 'obsidian';
-import { toUserMessage } from '../core/errors';
+import { Notice, TFile } from 'obsidian';
 import type { InsertionTarget } from '../core/types';
-import { ProgressReporter, formatBytes } from '../ui/progress';
+import { runPipeline } from './insert';
 import { resolveTargetInteractive, resolveTargetSync } from './resolve-target';
 import type CoverImagePickerPlugin from '../main';
 
@@ -25,7 +24,7 @@ export function registerCommands(plugin: CoverImagePickerPlugin): void {
 async function insertCoverImage(plugin: CoverImagePickerPlugin): Promise<void> {
 	// Pre-resolve synchronously (free), then open the picker before anything
 	// can await. Never put a modal between here and `open()` - see F9.
-	const presumed = resolveTargetSync(plugin.app, plugin.settings);
+	const presumed = resolveTargetSync(plugin.app, plugin.settings, plugin.focusTracker);
 	const file = await plugin.filePicker.open();
 	if (!file) return;
 
@@ -37,37 +36,4 @@ async function insertCoverImage(plugin: CoverImagePickerPlugin): Promise<void> {
 	}
 
 	await runPipeline(plugin, file, target);
-}
-
-export async function runPipeline(
-	plugin: CoverImagePickerPlugin,
-	file: File,
-	target: InsertionTarget,
-): Promise<void> {
-	const progress = new ProgressReporter();
-	try {
-		const result = await plugin.pipeline.run(file, file.name, target, progress.start());
-		new Notice(
-			`Set ${target.propertyKey}: ${result.width}×${result.height} ${result.format.toUpperCase()}, ${formatBytes(result.bytes)}`,
-		);
-		flashProperty(plugin, target.propertyKey);
-	} catch (err) {
-		// Detail to the console only; the user gets a short safe message.
-		console.error('[cover-image-picker] insertion failed', err);
-		new Notice(toUserMessage(err));
-	} finally {
-		progress.stop();
-	}
-}
-
-/** Brief highlight so it is obvious which row changed. No-op in source mode. */
-function flashProperty(plugin: CoverImagePickerPlugin, key: string): void {
-	const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
-	const row = view?.contentEl
-		.querySelector(`.metadata-property[data-property-key="${CSS.escape(key)}"]`)
-		?.closest('.metadata-property');
-	if (!(row instanceof HTMLElement)) return;
-
-	row.addClass('cip-just-updated');
-	window.setTimeout(() => row.removeClass('cip-just-updated'), 1200);
 }

@@ -12,6 +12,54 @@
 	pointer-events: none;
 }
 
+/* Inline button on a matching property row. */
+.cip-insert-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: var(--icon-size, 16px);
+	height: var(--icon-size, 16px);
+	margin-inline-start: var(--size-4-1);
+	border-radius: var(--radius-s);
+	color: var(--text-faint);
+	cursor: pointer;
+}
+
+.cip-insert-button:hover,
+.cip-insert-button:focus-visible {
+	color: var(--text-accent);
+	background-color: var(--background-modifier-hover);
+}
+
+.cip-insert-button:focus-visible {
+	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+	outline: none;
+}
+
+/* Desktop: stay out of the way until the row is used. */
+.cip-insert-button {
+	opacity: 0;
+	transition: opacity 100ms ease-in-out;
+}
+
+.metadata-property:hover .cip-insert-button,
+.metadata-property:focus-within .cip-insert-button,
+.cip-insert-button:focus-visible {
+	opacity: 1;
+}
+
+/* Mobile: always visible, and large enough to hit. Property rows are ~28px,
+   so the touch target has to exceed the visual with padding that does not
+   disturb the row's layout. */
+.is-mobile .cip-insert-button {
+	opacity: 1;
+	width: 44px;
+	height: 44px;
+	margin-block: -8px;
+	margin-inline-start: 0;
+}
+
 .cip-suggest-key {
 	font-weight: var(--font-semibold);
 }
@@ -38,5 +86,9 @@
 @media (prefers-reduced-motion: reduce) {
 	.metadata-property.cip-just-updated {
 		animation: none;
+	}
+
+	.cip-insert-button {
+		transition: none;
 	}
 }

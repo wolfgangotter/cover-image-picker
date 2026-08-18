@@ -91,6 +91,7 @@ src/
   core/                          ← zero obsidian imports, 100% unit-tested
     types.ts                     ~70   ImageInsertRequest, ProcessedImage, ResizeSpec, EncodeResult
     settle-once.ts               ~20   one-shot callback guard for modal result races
+    focus-memory.ts              ~30   pure freshness rules for the remembered focus
     frontmatter-scan.ts          ~90   cursor-offset → property key (source mode); pure, testable
     validate-source.ts           ~90   size cap, MIME allowlist, magic-byte sniff
     decode.ts                    ~90   Blob → ImageBitmap|HTMLImageElement, orientation handling
@@ -107,8 +108,8 @@ src/
   obsidian/
     vault-port.ts                ~90   write file, ensure folder, resolve target folder
     frontmatter-port.ts          ~110  read current value, write value, wikilink generation
-    property-dom.ts              ~180  ⚠ the ONLY file with internal selectors; MutationObserver
-    focus-tracker.ts             ~60   records last-focused matching property (§6 chain step 2)
+    property-dom.ts              ~145  ⚠ the ONLY file with internal selectors; MutationObserver
+    focus-tracker.ts             ~65   records last-focused matching property (§6 chain step 2)
   ui/
     insert-button.ts             ~90   the inline icon injected into a matching property row
     file-picker.ts               ~80   persistent hidden <input type=file>, iOS-safe accept list
@@ -542,11 +543,13 @@ with the command on the mobile toolbar, tap it, pick a photo, and get a resized,
 renamed, linked image in the configured folder.** This validates F9, the whole
 image pipeline, and the frontmatter write before any fragile code exists.
 
-**Phase 1b — Inline property button (1 day).** `obsidian/property-dom.ts` +
-`ui/insert-button.ts`. **Acceptance: on iOS in Live Preview, tap the button on a
-`cover` row and get the same result with no keyboard flash — and with the
-adapter forcibly disabled, the command path still works.** That second half is
-the F1 mitigation and should be an explicit test, not an assumption.
+**Phase 1b — ✅ BUILT (2026-08-18).** `obsidian/property-dom.ts`,
+`ui/insert-button.ts`, `obsidian/focus-tracker.ts`, plus chain step 2.
+The F1 kill switch shipped as the **"Show a button on property rows"** setting,
+so the degraded mode is a user-facing toggle rather than a thought experiment.
+Awaiting device testing: tap the button on a `cover` row in Live Preview on iOS,
+confirm no keyboard flash, and confirm the command still works with the toggle
+off.
 
 **Phase 2 — Desktop drag & drop (1 day).** `drag-drop.ts` + drop affordance +
 `editor-drop` source-mode path. Acceptance: dropping onto a non-matching

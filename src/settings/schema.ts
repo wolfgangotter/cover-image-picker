@@ -42,6 +42,9 @@ export interface CoverImagePickerSettings {
 		format: LinkFormat;
 	};
 
+	/** Also the kill switch for the internal-DOM adapter (F1). */
+	showPropertyButton: boolean;
+
 	/** Destructive; opt-in only. */
 	deleteReplacedFile: boolean;
 }
@@ -76,5 +79,6 @@ export const DEFAULT_SETTINGS: CoverImagePickerSettings = {
 	link: {
 		format: 'wikilink',
 	},
+	showPropertyButton: true,
 	deleteReplacedFile: false,
 };

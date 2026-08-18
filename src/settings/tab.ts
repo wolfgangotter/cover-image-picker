@@ -209,6 +209,11 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 				heading: 'Output',
 				items: [
 					{
+						name: 'Show a button on property rows',
+						desc: 'Adds an image button to matching properties in Live Preview. Turn off to use only the command.',
+						control: { type: 'toggle', key: 'showPropertyButton' },
+					},
+					{
 						name: 'Link format',
 						desc: 'Wikilinks let Obsidian track renames. The other formats do not.',
 						control: {

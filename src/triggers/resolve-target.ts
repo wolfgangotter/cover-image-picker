@@ -5,14 +5,20 @@ import type { InsertionTarget } from '../core/types';
 import { askForProperty, type PropertyChoice } from '../ui/property-suggest';
 import type { CoverImagePickerSettings } from '../settings/schema';
 
+/** Supplies step 2 of the chain; injected so the resolver stays testable. */
+export interface FocusRecall {
+	recall(notePath: string): string | null;
+}
+
 /**
  * Steps 1-3 of the resolution chain from the plan. All synchronous, so a
  * caller can run them before opening the picker at no cost.
- *
- * Step 2 (last-focused property) arrives with the Live Preview DOM adapter in
- * Phase 1b; in source mode the cursor already carries the same information.
  */
-export function resolveTargetSync(app: App, settings: CoverImagePickerSettings): InsertionTarget | null {
+export function resolveTargetSync(
+	app: App,
+	settings: CoverImagePickerSettings,
+	focus?: FocusRecall,
+): InsertionTarget | null {
 	const file = app.workspace.getActiveFile();
 	if (!(file instanceof TFile) || file.extension !== 'md') return null;
 
@@ -29,6 +35,13 @@ export function resolveTargetSync(app: App, settings: CoverImagePickerSettings):
 	const fromCursor = editor ? propertyKeyAtCursor(editor) : null;
 	if (fromCursor && isTargetProperty(fromCursor, config)) {
 		return { ...base, propertyKey: fromCursor };
+	}
+
+	// 2. Last-focused matching property. This is what makes the command feel
+	//    context-aware in Live Preview, where opening the palette blurs the field.
+	const remembered = focus?.recall(file.path) ?? null;
+	if (remembered && isTargetProperty(remembered, config)) {
+		return { ...base, propertyKey: remembered };
 	}
 
 	// 3. Sole configured property present in the note.
