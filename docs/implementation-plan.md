@@ -309,9 +309,13 @@ key matches. Details that matter more than they look:
 
 - **No focus required.** The user does not tap into the field first — which
   sidesteps F10 entirely rather than fighting it.
-- **Must not focus the input.** `preventDefault()` on `mousedown`/`touchstart`
-  suppresses focus (no keyboard flash), while `click` still fires and still
-  carries the gesture. Binding the picker to `click` keeps F9 satisfied.
+- **Must not focus the input** — but on `mousedown` only. `preventDefault()` on
+  `touchstart` makes WebKit treat the gesture as handled and skip the
+  synthesised mouse events *and the click*, leaving the button completely inert
+  on iOS (found in device testing, 2026-08-18). The synthesised mousedown
+  arrives before click, so suppressing focus there is enough on both platforms.
+- **`cursor: pointer` is load-bearing on iOS**: WebKit only reliably synthesises
+  click on a non-interactive element that looks clickable.
 - **44×44 pt hit area** (iOS HIG) via padding on a ~16 px icon; property rows are
   only ~28 px tall, so the hit area must exceed the visual.
 - **Adaptive action.** Empty property → open the picker directly (one tap).

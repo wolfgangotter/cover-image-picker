@@ -22,11 +22,20 @@ export function createInsertButton(
 	setIcon(button, 'image-plus');
 	setTooltip(button, 'Set cover image');
 
-	// Suppress focus so tapping does not raise the keyboard on mobile before
-	// the picker opens. `click` still fires and still carries the gesture.
-	const suppressFocus = (evt: Event) => evt.preventDefault();
-	button.addEventListener('mousedown', suppressFocus);
-	button.addEventListener('touchstart', suppressFocus, { passive: false });
+	/*
+	 * Suppress focus so tapping does not raise the keyboard before the picker
+	 * opens, and stop the row underneath from treating the tap as its own.
+	 *
+	 * `mousedown` only. Do NOT preventDefault on `touchstart`: WebKit treats
+	 * that as "this gesture is handled" and never synthesises the mouse events
+	 * or the click, so the button becomes completely inert on iOS. The
+	 * synthesised mousedown arrives before click and suppressing focus there is
+	 * enough on both platforms.
+	 */
+	button.addEventListener('mousedown', (evt) => {
+		evt.preventDefault();
+		evt.stopPropagation();
+	});
 
 	button.addEventListener('click', (evt) => {
 		evt.preventDefault();
