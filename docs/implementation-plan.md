@@ -577,10 +577,23 @@ exactly as stock Obsidian.
 
 **Phase 3 — ✅ BUILT (2026-08-18).** Camera capture via the `capture`
 attribute, exposed as a mobile-only command and a menu item rather than an
-extra tap on the common path. Paste handling in both source mode (cursor-based,
-so no DOM guessing needed) and on property rows. Per-property resize overrides,
-rendered as an Obsidian `list` of inline sub-pages. The replace/remove menu and
-the PNG/JPEG choice already shipped in 1b and 1a.
+extra tap on the common path. Per-property resize overrides, rendered as an
+Obsidian `list` of inline sub-pages. The replace/remove menu and the PNG/JPEG
+choice already shipped in 1b and 1a.
+
+**Paste was built and then removed (2026-08-19)** after device testing: it did
+nothing in Live Preview on either platform, and in source mode fell through to
+Obsidian, which linked the image unprocessed. Diagnosis, for whoever revives it:
+`clipboardData.files` is empty for copied image *data* (a screenshot) as opposed
+to a copied image *file*, so both handlers bailed early. A fix would read
+`clipboardData.items` where `kind === 'file'`, and move the Live Preview
+listener to capture phase so it beats Obsidian's own input handler.
+
+It was dropped rather than fixed because it adds no capability the button, drop
+and command paths do not already cover, and it is the only feature that has to
+contend with another owner of the same event — the worst value-to-maintenance
+ratio in the plugin. A feature that silently does nothing is also worse than an
+absent one.
 
 **Still open, deliberately:** renaming the image when the note is renamed (D2
 note 3) stays unbuilt — it touches files the user did not ask us to touch, and

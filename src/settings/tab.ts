@@ -325,8 +325,8 @@ export class CoverImagePickerSettingTab extends PluginSettingTab {
 						control: { type: 'toggle', key: 'showPropertyButton' },
 					},
 					{
-						name: 'Accept images dropped or pasted on property rows',
-						desc: 'Drag or paste an image onto a matching property to set it. Dropping and pasting elsewhere in the note is unaffected.',
+						name: 'Accept images dropped on property rows',
+						desc: 'Drag an image onto a matching property to set it. Dropping elsewhere in the note is unaffected.',
 						control: { type: 'toggle', key: 'acceptDroppedImages' },
 					},
 				],

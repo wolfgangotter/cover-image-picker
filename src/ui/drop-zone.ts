@@ -60,27 +60,6 @@ export function attachDropZone(
 		{ signal },
 	);
 
-	// Pasting onto a focused property row, the Live Preview counterpart of the
-	// source-mode editor-paste handler.
-	row.addEventListener(
-		'paste',
-		(evt) => {
-			if (evt.defaultPrevented) return;
-			if (!plugin.settings.acceptDroppedImages) return;
-
-			const files = Array.from(evt.clipboardData?.files ?? []);
-			const index = firstSupportedImage(files);
-			const file = index === -1 ? null : files[index];
-			if (!file) return; // Let ordinary text pastes through untouched.
-
-			evt.preventDefault();
-			evt.stopPropagation();
-			const target = getTarget();
-			if (target) void runPipeline(plugin, file, target);
-		},
-		{ signal },
-	);
-
 	row.addEventListener(
 		'drop',
 		(evt) => {

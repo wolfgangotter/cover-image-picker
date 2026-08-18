@@ -47,9 +47,8 @@ first release is the wrong time to find out.
 | iOS: source mode via the toolbar | ✅ |
 | Both property-row toggles, on and off | ✅ |
 | Ambiguous target (two matching properties) | ✅ |
-| **Paste** into a property, source mode and Live Preview | ⬜ never tested |
-| **Per-property sizes** actually applied to the output | ⬜ never tested |
-| **Real camera photo** end to end — orientation and file size | ⬜ Q2 was proven with a synthetic fixture only |
+| **Per-property sizes** actually applied to the output | ✅ |
+| **Real camera photo** end to end — orientation and file size | ✅ |
 | **12 MP photo** on iOS — memory behaviour | ⬜ |
 | **iPad** | ⬜ |
 | Note in a subfolder, and each storage mode | ⬜ |

@@ -59,9 +59,9 @@ In Live Preview, matching property rows get an image button. A property that
 already holds an image opens a menu instead — replace, open, take a photo, or
 clear.
 
-You can also **drag or paste** an image straight onto a matching property row,
-in Live Preview or in source mode. Dropping and pasting anywhere else behaves
-exactly as it does without the plugin.
+On desktop you can also **drag** an image straight onto a matching property row,
+in Live Preview or in source mode. Dropping anywhere else behaves exactly as it
+does without the plugin.
 
 On mobile, **Take a photo as cover image** captures straight from the camera.
 Add it to the toolbar in **Settings → Toolbar**, or use the menu on a property
@@ -77,7 +77,7 @@ that already has an image.
 | **Resize** | Fit a box (cover / contain / stretch), a single axis, or don't resize. |
 | **Format** | WebP, JPEG or PNG, with quality. |
 | **Per-property sizes** | Give `banner` its own dimensions while `cover` keeps the default. |
-| **Property rows** | The inline button and the drop/paste target, toggled independently. |
+| **Property rows** | The inline button and the drop target, toggled independently. |
 | **Link format** | Wikilink, markdown, or a plain path. |
 
 **Wikilink is the default and recommended**: Obsidian registers it as a real
