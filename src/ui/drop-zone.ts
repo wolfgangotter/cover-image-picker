@@ -72,6 +72,11 @@ export function attachDropZone(
 			const files = Array.from(evt.dataTransfer?.files ?? []);
 			if (files.length === 0) return;
 
+			// Resolved before claiming the event: if this row no longer belongs
+			// to a configured property, the drop is not ours to swallow.
+			const target = getTarget();
+			if (!target) return;
+
 			const index = firstSupportedImage(files);
 			if (index === -1) {
 				// Claim it anyway: the drag was over our row, and letting it
@@ -81,12 +86,11 @@ export function attachDropZone(
 				return;
 			}
 
+			const file = files[index];
+			if (!file) return;
+
 			evt.preventDefault();
 			evt.stopPropagation();
-
-			const target = getTarget();
-			const file = files[index];
-			if (!target || !file) return;
 			if (files.length > 1) new Notice(`Using ${file.name}; a property holds one image.`);
 
 			void runPipeline(plugin, file, target);

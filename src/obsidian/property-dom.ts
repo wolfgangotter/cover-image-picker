@@ -175,24 +175,43 @@ export class PropertyDomAdapter extends Component {
 		const button = row.querySelector(`.${BUTTON_CLASS}`);
 
 		if (!key || !isTargetProperty(key, config)) {
-			// Settings may have changed since this row was decorated.
+			// Settings may have changed since this row was decorated, or Obsidian
+			// may have reused the node for a different property. Undecorate fully:
+			// leaving the drop zone behind would keep accepting images for a
+			// property that is no longer on this row.
 			button?.remove();
+			row.removeClasses([DROP_ZONE_CLASS, 'cip-drop-active']);
 			return;
 		}
 
 		const settings = this.plugin.settings;
-		const target: InsertionTarget = { notePath, noteName, propertyKey: key };
+
+		/*
+		 * Resolved on every use rather than captured.
+		 *
+		 * Obsidian can rename the property on an existing row, which changes
+		 * `data-property-key` in place. A target captured at decoration time
+		 * would then quietly write to the previous property - and because both
+		 * affordances would already exist, neither would be rebuilt to notice.
+		 */
+		const target = (): InsertionTarget | null => {
+			const current = propertyKeyOf(row);
+			if (!current || !isTargetProperty(current, this.matchConfig())) return null;
+			return { notePath, noteName, propertyKey: current };
+		};
 
 		if (settings.showPropertyButton && !button) {
 			const host = row.querySelector(VALUE_CELL) ?? row;
-			host.appendChild(createInsertButton(this.plugin, () => target));
+			host.appendChild(createInsertButton(this.plugin, target));
 		} else if (!settings.showPropertyButton && button) {
 			button.remove();
 		}
 
 		// Desktop drag and drop onto the row itself (F5).
 		if (settings.acceptDroppedImages && !row.hasClass(DROP_ZONE_CLASS)) {
-			attachDropZone(this.plugin, row, () => target, this.listeners.signal);
+			attachDropZone(this.plugin, row, target, this.listeners.signal);
+		} else if (!settings.acceptDroppedImages && row.hasClass(DROP_ZONE_CLASS)) {
+			row.removeClasses([DROP_ZONE_CLASS, 'cip-drop-active']);
 		}
 	}
 

@@ -21,6 +21,12 @@ export interface EventRef {
 
 export class Component {
 	private children: Component[] = [];
+	/**
+	 * Detachers registered through register*(). Obsidian runs these on unload,
+	 * and so must this stub: without it a test can assert "no stray buttons"
+	 * while listeners quietly survive, which is the failure it exists to catch.
+	 */
+	private cleanups: (() => void)[] = [];
 	_loaded = false;
 
 	load(): void {
@@ -33,6 +39,7 @@ export class Component {
 		this._loaded = false;
 		for (const child of this.children) child.unload();
 		this.onunload();
+		for (const cleanup of this.cleanups.splice(0)) cleanup();
 	}
 	onunload(): void {}
 	addChild<T extends Component>(child: T): T {
@@ -43,12 +50,20 @@ export class Component {
 	removeChild<T extends Component>(child: T): T {
 		return child;
 	}
-	register(): void {}
+	register(cleanup: () => void): void {
+		this.cleanups.push(cleanup);
+	}
 	registerEvent(): void {}
 	registerDomEvent(el: EventTarget, type: string, cb: EventListener): void {
 		el.addEventListener(type, cb);
+		this.cleanups.push(() => {
+			el.removeEventListener(type, cb);
+		});
 	}
 	registerInterval(id: number): number {
+		this.cleanups.push(() => {
+			clearInterval(id);
+		});
 		return id;
 	}
 }

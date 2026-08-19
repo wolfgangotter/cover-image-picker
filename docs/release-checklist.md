@@ -17,7 +17,7 @@ effectively irreversible.
 - [x] `package.json` version matches the manifest
 - [x] README states requirements, install, privacy and permissions
 - [x] `main.js` is gitignored; CI builds it for the release
-- [x] Quality gate clean: `npm run check` (typecheck + lint + 148 tests),
+- [x] Quality gate clean: `npm run check` (typecheck + lint + 173 tests),
       zero errors **and** zero warnings
 
 ## 2. Before tagging
@@ -52,10 +52,16 @@ first release is the wrong time to find out.
 | **12 MP photo** on iOS — memory behaviour | ⬜ |
 | **iPad** | ⬜ |
 | Note in a subfolder, and each storage mode | ✅ automated (`tests/vault-storage.test.ts`) |
-| Filename with spaces / non-ASCII | ✅ automated (`tests/naming.test.ts`) |
+| Filename with spaces / non-ASCII | ⬜ unit-tested only — see note below |
 | Properties set to `Hidden` in Obsidian settings (F11) | ⬜ |
 | Popout window (desktop) | ⬜ |
-| Disable/enable the plugin: no leaked listeners or stray buttons | ✅ automated (`tests/lifecycle.test.ts`) |
+| Disable/enable: no stray buttons, no surviving drop listeners | ✅ automated (`tests/lifecycle.test.ts`) |
+
+**On the non-ASCII row:** `tests/naming.test.ts` covers the sanitiser, which
+normalises to NFC, and `tests/link-format.test.ts` covers percent-encoding. Neither
+can reach the risk that row exists for: macOS and iOS hand filesystem paths back
+in NFD, so a written filename can round-trip to a different string than the one
+embedded in the wikilink, leaving a broken embed. Only a device run finds that.
 
 ## 3. Release and submission
 

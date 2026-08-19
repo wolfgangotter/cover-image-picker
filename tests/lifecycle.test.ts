@@ -10,6 +10,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import CoverImagePickerPlugin from '../src/main';
+import type { InsertionTarget } from '../src/core/types';
 import { MarkdownView, TFile, type MockApp } from './stubs/obsidian';
 import { installObsidianDom, makePropertyRow } from './stubs/dom';
 
@@ -56,14 +57,45 @@ function makeApp(view: MarkdownView): MockApp {
  *  document and turns into unrelated noise. */
 const loaded: CoverImagePickerPlugin[] = [];
 
-async function loadPlugin(view: MarkdownView): Promise<CoverImagePickerPlugin> {
+async function loadPlugin(view: MarkdownView, stored?: unknown): Promise<CoverImagePickerPlugin> {
 	const plugin = new CoverImagePickerPlugin(makeApp(view) as never, { id: 'cover-image-picker' } as never);
 	(plugin as unknown as { _loaded: boolean })._loaded = true;
+	if (stored !== undefined) plugin.loadData = () => Promise.resolve(stored);
 	await plugin.onload();
 	loaded.push(plugin);
 	return plugin;
 }
 
+/**
+ * Records what the pipeline was asked to do, instead of letting it run: jsdom
+ * has no canvas, and what these tests care about is which property was
+ * targeted, not the encoding.
+ */
+function captureRuns(plugin: CoverImagePickerPlugin): InsertionTarget[] {
+	const seen: InsertionTarget[] = [];
+	plugin.pipeline = {
+		run: async (_file: Blob, _name: string, target: InsertionTarget) => {
+			seen.push(target);
+			return { imagePath: 'x.webp', format: 'webp', bytes: 1, width: 1, height: 1 };
+		},
+	} as unknown as CoverImagePickerPlugin['pipeline'];
+	return seen;
+}
+
+/** Dispatches a drop carrying one image; true if the plugin claimed it. */
+function dropImageOn(row: Element): boolean {
+	const evt = new Event('drop', { bubbles: true, cancelable: true }) as Event & {
+		dataTransfer: unknown;
+	};
+	const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'p.jpg', { type: 'image/jpeg' });
+	Object.defineProperty(evt, 'dataTransfer', {
+		value: { files: [file], types: ['Files'] },
+	});
+	row.dispatchEvent(evt);
+	return evt.defaultPrevented;
+}
+
+const rowFor = (key: string) => document.querySelector(`[data-property-key="${key}"]`);
 const buttons = () => document.querySelectorAll('.cip-insert-button');
 const dropZones = () => document.querySelectorAll('.cip-drop-zone');
 const fileInputs = () => document.querySelectorAll('input[type=file]');
@@ -95,14 +127,57 @@ describe('decoration', () => {
 		expect(dropZones()).toHaveLength(0);
 	});
 
-	it('never decorates the same row twice', async () => {
-		const plugin = await loadPlugin(makeView(['cover']));
+	/**
+	 * The MutationObserver path re-runs decoration constantly with no removal
+	 * in between, so the `!button` / `!hasClass` guards are what stop buttons
+	 * stacking up. Driving refresh() instead would remove-then-re-add and pass
+	 * even with those guards deleted.
+	 */
+	it('never decorates the same row twice on repeated rescans', async () => {
+		await loadPlugin(makeView(['cover']));
 
-		plugin.refreshPropertyRows();
-		plugin.refreshPropertyRows();
+		for (let i = 0; i < 3; i++) {
+			document.body.appendChild(document.createElement('div'));
+			await new Promise((r) => setTimeout(r, 0));
+		}
 
 		expect(buttons()).toHaveLength(1);
 		expect(dropZones()).toHaveLength(1);
+	});
+
+	/**
+	 * Obsidian renames a property in place, changing data-property-key on the
+	 * existing node. A target captured at decoration time would keep writing to
+	 * the old property.
+	 */
+	it('follows a property renamed in place', async () => {
+		const plugin = await loadPlugin(makeView(['cover']));
+		const runs = captureRuns(plugin);
+		const row = rowFor('cover') as Element;
+
+		// cover -> banner: still configured, so the row stays live - but it must
+		// now write to `banner`, not to the key captured when it was decorated.
+		row.setAttribute('data-property-key', 'banner');
+		expect(dropImageOn(row)).toBe(true);
+		expect(runs.at(-1)?.propertyKey).toBe('banner');
+
+		// banner -> title: no longer ours, so the drop must fall through.
+		row.setAttribute('data-property-key', 'title');
+		expect(dropImageOn(row)).toBe(false);
+		expect(runs).toHaveLength(1);
+	});
+
+	it('undecorates a row that stops matching, drop zone included', async () => {
+		const plugin = await loadPlugin(makeView(['cover']));
+		captureRuns(plugin);
+		expect(dropZones()).toHaveLength(1);
+
+		plugin.settings.propertyNames = ['banner'];
+		plugin.refreshPropertyRows();
+
+		expect(buttons()).toHaveLength(0);
+		expect(dropZones()).toHaveLength(0);
+		expect(dropImageOn(rowFor('cover') as Element)).toBe(false);
 	});
 });
 
@@ -124,6 +199,18 @@ describe('disable', () => {
 		plugin.unload();
 
 		expect(fileInputs()).toHaveLength(0);
+	});
+
+	it('stops responding to drops, so no listener survives', async () => {
+		const plugin = await loadPlugin(makeView(['cover']));
+		const runs = captureRuns(plugin);
+		const row = rowFor('cover') as Element;
+		expect(dropImageOn(row)).toBe(true);
+
+		plugin.unload();
+
+		expect(dropImageOn(row)).toBe(false);
+		expect(runs).toHaveLength(1);
 	});
 
 	it('leaves the property rows themselves intact', async () => {
@@ -155,12 +242,16 @@ describe('re-enable', () => {
 
 	it('picks up property names changed while it was off', async () => {
 		const view = makeView(['hero']);
-		const plugin = await loadPlugin(view);
+		const first = await loadPlugin(view);
 		expect(buttons()).toHaveLength(0);
 
-		plugin.settings.propertyNames = ['hero'];
-		plugin.refreshPropertyRows();
+		first.unload();
+
+		// A fresh instance reading the settings that were saved meanwhile,
+		// which is what enabling the plugin again actually does.
+		const second = await loadPlugin(view, { propertyNames: ['hero'] });
 
 		expect(buttons()).toHaveLength(1);
+		expect(second.settings.propertyNames).toEqual(['hero']);
 	});
 });

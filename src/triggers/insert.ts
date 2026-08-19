@@ -42,14 +42,25 @@ export async function runPipeline(
 	}
 }
 
-/** Brief highlight so it is obvious which row changed. No-op in source mode. */
+/**
+ * Brief highlight so it is obvious which row changed. No-op in source mode.
+ *
+ * Swallows its own failures deliberately. It runs after the image is written
+ * and the success notice is shown, so letting it throw would land in the
+ * caller's catch and tell the user an insertion failed when it had already
+ * succeeded — a cosmetic flourish must never be able to report an error.
+ */
 function flashProperty(key: string): void {
-	const rows = activeDocument.querySelectorAll(
-		`.metadata-property[data-property-key="${CSS.escape(key)}"]`,
-	);
-	rows.forEach((row) => {
-		if (!row.instanceOf(HTMLElement)) return;
-		row.addClass('cip-just-updated');
-		window.setTimeout(() => row.removeClass('cip-just-updated'), 1200);
-	});
+	try {
+		const rows = activeDocument.querySelectorAll(
+			`.metadata-property[data-property-key="${CSS.escape(key)}"]`,
+		);
+		rows.forEach((row) => {
+			if (!row.instanceOf(HTMLElement)) return;
+			row.addClass('cip-just-updated');
+			window.setTimeout(() => row.removeClass('cip-just-updated'), 1200);
+		});
+	} catch {
+		// Nothing to report: the insertion itself already succeeded.
+	}
 }

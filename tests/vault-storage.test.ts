@@ -60,7 +60,18 @@ function makeVault(): FakeVault {
 			metadataCache: {},
 			fileManager: {
 				getNewFileParent: () => asFolder(attachmentFolder),
-				getAvailablePathForAttachment: async (name: string) => `${attachmentFolder}/${name}`,
+				// Obsidian suffixes rather than returning a path that is taken;
+				// mirroring that is what makes the overwrite interaction visible.
+				getAvailablePathForAttachment: async (name: string) => {
+					const dot = name.lastIndexOf('.');
+					const base = name.slice(0, dot);
+					const ext = name.slice(dot + 1);
+					let candidate = `${attachmentFolder}/${name}`;
+					for (let i = 1; files.has(candidate); i++) {
+						candidate = `${attachmentFolder}/${base} ${i}.${ext}`;
+					}
+					return candidate;
+				},
 			},
 		}) as unknown as MockApp;
 
@@ -75,7 +86,10 @@ const target: InsertionTarget = {
 
 let vault: FakeVault;
 
-function storage(over: Partial<CoverImagePickerSettings['storage']> = {}, naming = {}) {
+function storage(
+	over: Partial<CoverImagePickerSettings['storage']> = {},
+	naming: Partial<CoverImagePickerSettings['naming']> = {},
+) {
 	const settings: CoverImagePickerSettings = {
 		...DEFAULT_SETTINGS,
 		storage: { ...DEFAULT_SETTINGS.storage, ...over },
@@ -161,6 +175,24 @@ describe('collisions', () => {
 		expect(await write(s)).toBe('assets/covers/Trip_cover.webp');
 		expect(vault.modified).toEqual(['assets/covers/Trip_cover.webp']);
 		expect(vault.created).toHaveLength(0);
+	});
+
+	/**
+	 * Attachments mode hands the whole path decision to Obsidian, which resolves
+	 * collisions itself - so our own overwrite policy does not apply there.
+	 * Asserted rather than left implicit, because the two settings look like
+	 * they should interact and do not.
+	 */
+	it('leaves collision handling to Obsidian in attachments mode', async () => {
+		vault.files.add('Attachments/Trip_cover.webp');
+		const s = storage({ mode: 'obsidian-attachments' }, { onCollision: 'overwrite' });
+
+		// Note the asymmetry: "overwrite" is ignored here, because Obsidian has
+		// already picked a free path. Attachments mode accumulates files rather
+		// than replacing one, which is the price of deferring to the user's own
+		// attachment settings.
+		expect(await write(s)).toBe('Attachments/Trip_cover 1.webp');
+		expect(vault.modified).toEqual([]);
 	});
 });
 
