@@ -1,0 +1,112 @@
+name: Bug report
+description: Something does not work as described
+labels: ['bug']
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for reporting. Almost every bug found in this plugin so far has
+              been specific to one platform, one view mode, or one way of inserting
+              the image — so the questions below are the ones that actually narrow it
+              down. Please fill in as many as you can.
+
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: What happened
+          description: What did you expect, and what happened instead?
+          placeholder: |
+              I expected the image to be set on the `cover` property.
+              Instead nothing happened and the property stayed empty.
+      validations:
+          required: true
+
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to reproduce
+          description: Exact steps, starting from a note you could recreate.
+          placeholder: |
+              1. Create a note with an empty `cover` property
+              2. Switch to Live Preview
+              3. Tap the image button on the property row
+              4. Choose a photo from the gallery
+      validations:
+          required: true
+
+    - type: dropdown
+      id: platform
+      attributes:
+          label: Platform
+          options:
+              - Desktop — Windows
+              - Desktop — macOS
+              - Desktop — Linux
+              - Mobile — iOS / iPadOS
+              - Mobile — Android
+      validations:
+          required: true
+
+    - type: dropdown
+      id: trigger
+      attributes:
+          label: How did you start the insertion?
+          description: These paths are separate code, so this narrows it a lot.
+          options:
+              - The button on the property row
+              - The command palette
+              - The mobile toolbar
+              - Drag and drop
+              - The camera command
+              - Not applicable
+      validations:
+          required: true
+
+    - type: dropdown
+      id: mode
+      attributes:
+          label: View mode
+          options:
+              - Live Preview
+              - Source mode
+              - Reading view
+              - Not applicable
+      validations:
+          required: true
+
+    - type: input
+      id: versions
+      attributes:
+          label: Obsidian and plugin version
+          description: Obsidian version is under Settings → About.
+          placeholder: 'Obsidian 1.13.1, Cover Image Picker 1.0.0'
+      validations:
+          required: true
+
+    - type: textarea
+      id: console
+      attributes:
+          label: Console output
+          description: |
+              On desktop: Ctrl/Cmd+Shift+I → Console. Anything starting with
+              `[cover-image-picker]` is especially useful. Leave blank on mobile,
+              where the console is not reachable.
+          render: text
+
+    - type: textarea
+      id: settings
+      attributes:
+          label: Relevant settings
+          description: |
+              Storage location, filename template, resize mode and format, if you
+              have changed them from the defaults.
+
+    - type: checkboxes
+      id: checks
+      attributes:
+          label: Before submitting
+          options:
+              - label: I am on the latest version of the plugin
+                required: true
+              - label: I checked that no existing issue reports this
+                required: true

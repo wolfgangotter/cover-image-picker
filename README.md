@@ -114,6 +114,11 @@ Architecture, the platform constraints behind it, and the phase plan are in
 [`docs/implementation-plan.md`](docs/implementation-plan.md). The Phase 0
 diagnostics that settled those constraints are in [`probes/`](probes/).
 
+## Contributing
+
+Bug reports are the most useful thing you can send — most bugs so far only
+showed up on a device I do not have. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 [MIT](LICENSE)
