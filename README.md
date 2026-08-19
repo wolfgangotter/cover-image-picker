@@ -1,8 +1,10 @@
 # Cover Image Picker
 
-Pick, resize and store cover images straight from a note's YAML frontmatter
-properties — including on iOS, where Obsidian otherwise gives you no way to get
-an image into a property at all.
+Pick, resize and store images straight from and into a note's YAML frontmatter
+properties — including on iOS, where handling frontmatter images is quite
+a tedious process otherwise. I created the plugin to solve this recurring
+problem I faced when inventorying things and taking pictures on my phone that I
+would want to be set as cover images.
 
 <!--
   TODO before submitting: record a short demo and drop it in below.
@@ -21,12 +23,12 @@ an image into a property at all.
 
 ## What it does
 
-Choose a photo, and the plugin resizes it, re-encodes it, names it by a
-template, saves it where you asked, and writes the link into the property — in
-one step.
+Choose a photo, and the plugin resizes it, re-encodes it, renames it, saves it
+where specified, and puts the link into the property — all in one step.
 
-- **Scoped by design.** Only the property names you configure (`cover`, `banner`
-  by default) are ever touched. Nothing about normal editing changes.
+- **Minimally scoped by design.** Only the property names configured (`cover`,
+  `banner` by default) are ever touched. All other properties should behave
+  normally, thus it should not interfere with other plugins too much.
 - **Works on iOS.** WebP cannot be encoded in WebKit, so iOS transparently falls
   back to JPEG at the same quality setting.
 - **Strips EXIF.** Re-encoding through a canvas drops all metadata, including
@@ -35,7 +37,8 @@ one step.
 
 ## Requirements
 
-Obsidian **1.13.0** or later, on desktop or mobile.
+Obsidian **1.13.0** or later, on desktop or mobile (however, I only tested it on
+iOS).
 
 ## Install
 
@@ -49,9 +52,12 @@ the plugin under Settings → Community plugins.
 
 ## Use it
 
-Run **Insert cover image** from the command palette. On mobile, add it to the
-toolbar in **Settings → Toolbar** — it then works in source mode exactly like
-the built-in image button.
+On desktop, drag and drop an image into a configured frontmatter property, set
+the edit button to show for configured properties or run **Insert cover image**
+from the command palette. On mobile, set the edit button to show for configured
+properties, run it from the command palette or add it to the toolbar in
+**Settings → Toolbar** — it then works in source mode exactly like the built-in
+image button.
 
 The command works out which property to write to:
 
