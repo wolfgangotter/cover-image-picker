@@ -76,6 +76,7 @@ export default class CoverImagePickerPlugin extends Plugin {
 	 */
 	refreshPropertyRows(): void {
 		this.propertyDom.refresh();
+		// The remembered property may no longer be one we act on.
 		this.focusTracker.forget();
 	}
 }

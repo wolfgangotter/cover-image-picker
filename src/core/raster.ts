@@ -102,10 +102,23 @@ function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
  * shrinks by more than 2x aliases visibly in WebKit.
  */
 export function drawResized(image: DecodedImage, plan: ResizePlan): HTMLCanvasElement {
-	const { source } = plan;
-	const steps = halvingSteps(source.width, plan.target.width);
+	const { source, target } = plan;
+	const steps = halvingSteps(source.width, target.width);
 
-	let current = makeCanvas(source.width, source.height);
+	/*
+	 * The first draw goes straight from the decoded image to the first reduced
+	 * size. Copying the crop at full resolution first would allocate a canvas
+	 * the size of the original photo purely to shrink it a moment later: for a
+	 * 12 MP phone photo that is ~36 MB of canvas on top of the ~48 MB bitmap,
+	 * on the platform with the least memory to spare.
+	 */
+	const firstWidth = steps[0] ?? target.width;
+	const firstHeight =
+		steps.length > 0
+			? Math.max(1, Math.round(source.height * (firstWidth / source.width)))
+			: target.height;
+
+	let current = makeCanvas(firstWidth, firstHeight);
 	context2d(current).drawImage(
 		image.source,
 		source.x,
@@ -114,11 +127,11 @@ export function drawResized(image: DecodedImage, plan: ResizePlan): HTMLCanvasEl
 		source.height,
 		0,
 		0,
-		source.width,
-		source.height,
+		firstWidth,
+		firstHeight,
 	);
 
-	for (const width of steps) {
+	for (const width of steps.slice(1)) {
 		const height = Math.max(1, Math.round(current.height * (width / current.width)));
 		const next = makeCanvas(width, height);
 		context2d(next).drawImage(current, 0, 0, current.width, current.height, 0, 0, width, height);
@@ -126,18 +139,11 @@ export function drawResized(image: DecodedImage, plan: ResizePlan): HTMLCanvasEl
 		current = next;
 	}
 
-	const out = makeCanvas(plan.target.width, plan.target.height);
-	context2d(out).drawImage(
-		current,
-		0,
-		0,
-		current.width,
-		current.height,
-		0,
-		0,
-		plan.target.width,
-		plan.target.height,
-	);
-	if (current !== out) current.width = current.height = 0;
+	// Without halving steps the first draw already produced the target.
+	if (current.width === target.width && current.height === target.height) return current;
+
+	const out = makeCanvas(target.width, target.height);
+	context2d(out).drawImage(current, 0, 0, current.width, current.height, 0, 0, target.width, target.height);
+	current.width = current.height = 0;
 	return out;
 }

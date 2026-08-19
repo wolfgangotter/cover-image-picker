@@ -167,6 +167,22 @@ describe('decoration', () => {
 		expect(runs).toHaveLength(1);
 	});
 
+	/**
+	 * Every settings write calls refresh, including each step of a slider drag.
+	 * Rebuilding the rows for a change that cannot affect them is wasted DOM
+	 * work in the foreground, so the same button element must survive.
+	 */
+	it('does not rebuild rows for a setting that cannot affect them', async () => {
+		const plugin = await loadPlugin(makeView(['cover']));
+		const before = buttons()[0];
+
+		plugin.settings.encode.quality = 42;
+		plugin.refreshPropertyRows();
+
+		expect(buttons()).toHaveLength(1);
+		expect(buttons()[0]).toBe(before);
+	});
+
 	it('undecorates a row that stops matching, drop zone included', async () => {
 		const plugin = await loadPlugin(makeView(['cover']));
 		captureRuns(plugin);

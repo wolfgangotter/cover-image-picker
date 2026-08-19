@@ -37,6 +37,8 @@ export class PropertyDomAdapter extends Component {
 	private observer: MutationObserver | null = null;
 	/** Owns every listener attached to Obsidian's rows, so all can be dropped at once. */
 	private listeners = new AbortController();
+	/** Which settings the current decorations were built from. */
+	private signature = '';
 	private warned = false;
 
 	constructor(private readonly plugin: CoverImagePickerPlugin) {
@@ -68,6 +70,7 @@ export class PropertyDomAdapter extends Component {
 			this.registerEvent(this.app.workspace.on('layout-change', () => rescan()));
 			this.registerEvent(this.app.workspace.on('active-leaf-change', () => rescan()));
 			this.registerEvent(this.app.workspace.on('file-open', () => rescan()));
+			this.signature = this.decorationSignature();
 			this.app.workspace.onLayoutReady(() => this.safeDecorateAll());
 		} catch (err) {
 			console.error('[cover-image-picker] property row integration unavailable', err);
@@ -98,10 +101,32 @@ export class PropertyDomAdapter extends Component {
 		this.listeners = new AbortController();
 	}
 
-	/** Called when settings change: property names may no longer match. */
+	/**
+	 * Called when settings change.
+	 *
+	 * Only a few settings affect decoration, but this runs on every settings
+	 * write - including each step of a slider drag. Rebuilding every row's
+	 * button and drop zone because the JPEG quality moved by one is wasted DOM
+	 * work in the foreground, so the rebuild is gated on what it depends on.
+	 */
 	refresh(): void {
+		const next = this.decorationSignature();
+		if (next === this.signature) return;
+		this.signature = next;
+
 		this.removeAllDecorations();
 		this.decorateAll();
+	}
+
+	private decorationSignature(): string {
+		const s = this.plugin.settings;
+		return JSON.stringify([
+			s.propertyNames,
+			s.matchMode,
+			s.caseSensitive,
+			s.showPropertyButton,
+			s.acceptDroppedImages,
+		]);
 	}
 
 	/** Whether anything at all needs attaching to property rows. */
