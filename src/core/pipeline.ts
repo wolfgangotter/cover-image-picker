@@ -6,6 +6,7 @@
 
 import { CoverImageError } from './errors';
 import { buildBasename } from './naming';
+import { HEADER_BYTES, readImageSize } from './image-dimensions';
 import { resolveResizeSpec } from './overrides';
 import { isTargetProperty, type MatchConfig } from './property-match';
 import { decodeImage, drawResized } from './raster';
@@ -73,16 +74,29 @@ export class InsertionPipeline {
 		}
 
 		onProgress?.('validating');
-		const header = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+		const header = new Uint8Array(await file.slice(0, HEADER_BYTES).arrayBuffer());
 		validateSource(header, file.size, {
 			maxBytes: settings.encode.maxSourceBytes,
 			maxPixels: settings.encode.maxSourcePixels,
 		});
 
+		/*
+		 * Enforce the pixel budget from the header, before decoding allocates
+		 * for it. A small, heavily compressed file can expand into hundreds of
+		 * megabytes of bitmap, and on iOS that is the difference between a
+		 * rejection and the app being killed. Formats this cannot read fall
+		 * through to the post-decode check below.
+		 */
+		const declared = readImageSize(header);
+		if (declared) {
+			assertPixelBudget(declared.width, declared.height, settings.encode.maxSourcePixels);
+		}
+
 		onProgress?.('decoding');
 		const decoded = await decodeImage(file);
 		let canvas: HTMLCanvasElement;
 		try {
+			// Backstop for anything the header parser could not read.
 			assertPixelBudget(decoded.size.width, decoded.size.height, settings.encode.maxSourcePixels);
 			onProgress?.('resizing');
 			const spec = resolveResizeSpec(

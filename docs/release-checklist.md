@@ -17,7 +17,7 @@ effectively irreversible.
 - [x] `package.json` version matches the manifest
 - [x] README states requirements, install, privacy and permissions
 - [x] `main.js` is gitignored; CI builds it for the release
-- [x] Quality gate clean: `npm run check` (typecheck + lint + 173 tests),
+- [x] Quality gate clean: `npm run check` (typecheck + lint + 196 tests),
       zero errors **and** zero warnings
 
 ## 2. Before tagging
@@ -49,7 +49,7 @@ first release is the wrong time to find out.
 | Ambiguous target (two matching properties) | ✅ |
 | **Per-property sizes** actually applied to the output | ✅ |
 | **Real camera photo** end to end — orientation and file size | ✅ |
-| **12 MP photo** on iOS — memory behaviour | ⬜ |
+| **12 MP photo** on iOS — memory behaviour | ⬜ (peak canvas memory cut ~4x since this row was written) |
 | **iPad** | ⬜ |
 | Note in a subfolder, and each storage mode | ✅ automated (`tests/vault-storage.test.ts`) |
 | Filename with spaces / non-ASCII | ⬜ unit-tested only — see note below |

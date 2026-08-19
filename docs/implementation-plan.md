@@ -454,7 +454,12 @@ that turns out to matter.
 ## 9. Security checklist (mapped to the house rules)
 
 - **Input validation:** size cap, MIME allowlist, magic-byte sniff, dimension cap
-  (reject > 100 MP to prevent decompression-bomb OOM), reject SVG.
+  (reject > 100 MP to prevent decompression-bomb OOM), reject SVG. The dimension
+  cap is enforced from the **header, before decoding** (`core/image-dimensions.ts`
+  parses PNG, GIF, JPEG and all three WebP variants): checking it after decode
+  would be too late, since the allocation it guards against has already
+  happened. The post-decode check remains as a backstop for headers it cannot
+  read, and an unreadable header is always treated as "unknown", never "safe".
 - **Path traversal:** sanitise filename *and* re-assert containment of the
   resolved path after `normalizePath`. Two independent checks.
 - **Output encoding:** all DOM built with `createEl`/`createDiv`/`setText`; never
