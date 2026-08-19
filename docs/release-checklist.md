@@ -16,8 +16,12 @@ effectively irreversible.
 - [x] `versions.json` maps `1.0.0` → `1.13.0`
 - [x] `package.json` version matches the manifest
 - [x] README states requirements, install, privacy and permissions
+- [x] Plugin `id` and `name` are free in the community catalogue (checked against
+      `community-plugins.json`, 6760 entries). Nearest neighbours are
+      `image-picker` / "Image Picker" and `cover-image` / "Cover Image" — worth a
+      glance so the README differentiates.
 - [x] `main.js` is gitignored; CI builds it for the release
-- [x] Quality gate clean: `npm run check` (typecheck + lint + 199 tests),
+- [x] Quality gate clean: `npm run check` (typecheck + lint + 207 tests),
       zero errors **and** zero warnings
 
 ## 2. Before tagging
@@ -55,6 +59,7 @@ first release is the wrong time to find out.
 | Filename with spaces / non-ASCII | ⬜ unit-tested only — see note below |
 | Properties set to `Hidden` in Obsidian settings (F11) | ⬜ |
 | Popout window (desktop) | ⬜ |
+| **Type in a note, then insert a cover within ~2s** — nothing typed is lost | ⬜ |
 | Disable/enable: no stray buttons, no surviving drop listeners | ✅ automated (`tests/lifecycle.test.ts`) |
 
 **On the non-ASCII row:** `tests/naming.test.ts` covers the sanitiser, which

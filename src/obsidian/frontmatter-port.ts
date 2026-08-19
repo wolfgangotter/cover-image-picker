@@ -1,4 +1,4 @@
-import { TFile, type App } from 'obsidian';
+import { MarkdownView, TFile, type App } from 'obsidian';
 import { CoverImageError } from '../core/errors';
 import { buildLinkValue } from '../core/link-format';
 import type { InsertionTarget } from '../core/types';
@@ -20,6 +20,29 @@ export class ObsidianFrontmatter implements FrontmatterPort {
 		private readonly app: App,
 		private readonly settings: () => CoverImagePickerSettings,
 	) {}
+
+	/**
+	 * Flush any edits still sitting in an open editor for this note.
+	 *
+	 * `TextFileView.requestSave` is debounced by two seconds, but
+	 * `processFrontMatter` reads and writes the file on disk. Without this,
+	 * typing and then immediately adding a cover image is a race: we write the
+	 * property to the on-disk copy, then the editor's own save lands with its
+	 * in-memory copy and the property is silently gone. Losing a user's work is
+	 * the worst thing this plugin could do, so the write path pays for a flush.
+	 */
+	private async flushOpenEditors(file: TFile): Promise<void> {
+		for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
+			const view = leaf.view;
+			if (!(view instanceof MarkdownView) || view.file?.path !== file.path) continue;
+			try {
+				await view.save();
+			} catch (err) {
+				// Best effort: a failed flush is not a reason to abandon the write.
+				console.error('[cover-image-picker] could not flush pending edits', err);
+			}
+		}
+	}
 
 	private fileFor(target: InsertionTarget): TFile {
 		const file = this.app.vault.getFileByPath(target.notePath);
@@ -58,6 +81,7 @@ export class ObsidianFrontmatter implements FrontmatterPort {
 	/** Removes the property entirely, leaving the rest of the frontmatter alone. */
 	async clear(target: InsertionTarget): Promise<void> {
 		const file = this.fileFor(target);
+		await this.flushOpenEditors(file);
 		try {
 			await this.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
 				delete frontmatter[target.propertyKey];
@@ -69,6 +93,7 @@ export class ObsidianFrontmatter implements FrontmatterPort {
 
 	async write(target: InsertionTarget, imagePath: string): Promise<void> {
 		const file = this.fileFor(target);
+		await this.flushOpenEditors(file);
 		const image = this.app.vault.getFileByPath(imagePath);
 
 		const value = buildLinkValue({
