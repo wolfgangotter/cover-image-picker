@@ -21,6 +21,7 @@ import { BUTTON_CLASS, createInsertButton } from '../ui/insert-button';
 import type CoverImagePickerPlugin from '../main';
 
 const PROPERTY_ROW = '.metadata-property';
+const METADATA_CONTAINER = '.metadata-container';
 const KEY_ATTRIBUTE = 'data-property-key';
 const VALUE_CELL = '.metadata-property-value';
 const RESCAN_DELAY_MS = 150;
@@ -60,10 +61,20 @@ export class PropertyDomAdapter extends Component {
 		try {
 			const rescan = debounce(() => this.safeDecorateAll(), RESCAN_DELAY_MS, true);
 
-			// Property rows are re-rendered on almost every editor interaction,
-			// so observe once at the workspace root and rescan on a debounce
-			// rather than trying to track individual views.
-			this.observer = new MutationObserver(() => rescan());
+			/*
+			 * Observe once at the workspace root rather than tracking individual
+			 * views, but ignore mutations that cannot have touched a property
+			 * row. Typing mutates the editor constantly, and each pause would
+			 * otherwise cost a full querySelectorAll sweep of every open note
+			 * to discover that nothing had changed.
+			 *
+			 * The workspace events below still force a rescan, so this filter
+			 * being too strict degrades to "decorated a moment later", not to
+			 * "never decorated".
+			 */
+			this.observer = new MutationObserver((records) => {
+				if (touchesProperties(records)) rescan();
+			});
 			this.observer.observe(this.app.workspace.containerEl, { childList: true, subtree: true });
 
 			// Listed individually because the overloads are per-event-name.
@@ -257,4 +268,28 @@ export class PropertyDomAdapter extends Component {
 			);
 		}
 	}
+}
+
+/**
+ * Whether a batch of mutations could plausibly have changed a property row.
+ *
+ * Deliberately errs towards true: a false positive costs one wasted sweep, a
+ * false negative costs a missing button until the next workspace event.
+ */
+function touchesProperties(records: MutationRecord[]): boolean {
+	for (const record of records) {
+		const target = record.target;
+		if (target.instanceOf(Element) && target.closest(METADATA_CONTAINER)) return true;
+		if (containsProperties(record.addedNodes) || containsProperties(record.removedNodes)) return true;
+	}
+	return false;
+}
+
+function containsProperties(nodes: NodeList): boolean {
+	for (const node of Array.from(nodes)) {
+		if (!node.instanceOf(Element)) continue;
+		if (node.matches(METADATA_CONTAINER) || node.matches(PROPERTY_ROW)) return true;
+		if (node.querySelector(`${METADATA_CONTAINER}, ${PROPERTY_ROW}`)) return true;
+	}
+	return false;
 }

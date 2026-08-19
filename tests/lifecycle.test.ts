@@ -32,6 +32,9 @@ function makeView(keys: string[]): MarkdownView {
 	return view;
 }
 
+/** Counts full sweeps: decorateAll starts by enumerating the markdown leaves. */
+let leafQueries = 0;
+
 function makeApp(view: MarkdownView): MockApp {
 	const noopRef = () => ({});
 	return {
@@ -43,7 +46,10 @@ function makeApp(view: MarkdownView): MockApp {
 			onLayoutReady: (cb: () => void) => cb(),
 			getActiveFile: () => view.file,
 			getActiveViewOfType: () => null,
-			getLeavesOfType: () => [{ view }],
+			getLeavesOfType: () => {
+				leafQueries++;
+				return [{ view }];
+			},
 			getLeaf: () => ({ openFile: async () => {} }),
 		},
 		vault: { on: noopRef } as unknown as MockApp['vault'],
@@ -102,6 +108,7 @@ const fileInputs = () => document.querySelectorAll('input[type=file]');
 
 beforeEach(() => {
 	document.body.innerHTML = '';
+	leafQueries = 0;
 	installObsidianDom();
 });
 
@@ -143,6 +150,53 @@ describe('decoration', () => {
 
 		expect(buttons()).toHaveLength(1);
 		expect(dropZones()).toHaveLength(1);
+	});
+
+	/**
+	 * The regression this filter must never cause: a property added to a note
+	 * after load still has to be picked up from the DOM alone, with no
+	 * workspace event to fall back on.
+	 */
+	it('decorates a property row added after load', async () => {
+		await loadPlugin(makeView(['title']));
+		expect(buttons()).toHaveLength(0);
+
+		document.querySelector('.metadata-container')?.appendChild(makePropertyRow('cover'));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(buttons()).toHaveLength(1);
+	});
+
+	it('ignores editor mutations that cannot have touched a property row', async () => {
+		await loadPlugin(makeView(['cover']));
+
+		// Stand in for typing: churn well away from the properties block.
+		const editor = document.createElement('div');
+		editor.className = 'cm-content';
+		document.body.appendChild(editor);
+		await new Promise((r) => setTimeout(r, 0));
+
+		const sweepsBefore = leafQueries;
+		for (let i = 0; i < 20; i++) {
+			editor.appendChild(document.createElement('span'));
+			await new Promise((r) => setTimeout(r, 0));
+		}
+
+		// Not "the buttons look unchanged" - decorateAll is idempotent, so that
+		// would pass with the filter removed. No sweep may have run at all.
+		expect(leafQueries).toBe(sweepsBefore);
+		expect(buttons()).toHaveLength(1);
+	});
+
+	it('does sweep when the properties block itself changes', async () => {
+		await loadPlugin(makeView(['cover']));
+		await new Promise((r) => setTimeout(r, 0));
+
+		const sweepsBefore = leafQueries;
+		document.querySelector('.metadata-container')?.appendChild(makePropertyRow('banner'));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(leafQueries).toBeGreaterThan(sweepsBefore);
 	});
 
 	/**

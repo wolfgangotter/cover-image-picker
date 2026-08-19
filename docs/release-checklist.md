@@ -17,7 +17,7 @@ effectively irreversible.
 - [x] `package.json` version matches the manifest
 - [x] README states requirements, install, privacy and permissions
 - [x] `main.js` is gitignored; CI builds it for the release
-- [x] Quality gate clean: `npm run check` (typecheck + lint + 196 tests),
+- [x] Quality gate clean: `npm run check` (typecheck + lint + 199 tests),
       zero errors **and** zero warnings
 
 ## 2. Before tagging
