@@ -6,20 +6,9 @@ a tedious process otherwise. I created the plugin to solve this recurring
 problem I faced when inventorying things and taking pictures on my phone that I
 would want to be set as cover images.
 
-<!--
-  TODO before submitting: record a short demo and drop it in below.
+![Setting a cover image on iOS](https://raw.githubusercontent.com/wolfgangotter/cover-image-picker/main/docs/demo.gif)
 
-  A GIF works well here - the whole flow is three seconds of screen. Commit it
-  as docs/demo.gif and use an ABSOLUTE raw URL rather than a relative path, so
-  it renders on obsidian.md and in the community directory too, not only on
-  GitHub:
-
-  ![Setting a cover image](https://raw.githubusercontent.com/<user>/<repo>/main/docs/demo.gif)
-
-  Keep it under a few MB. It ships nowhere near the user's vault - Obsidian only
-  ever downloads main.js, manifest.json and styles.css - so it costs installers
-  nothing.
--->
+_Demo image credit: Samuele Bertoli. [Watch as MP4](https://github.com/wolfgangotter/cover-image-picker/blob/main/docs/demo.mp4) for a sharper version._
 
 ## What it does
 
