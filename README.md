@@ -5,9 +5,18 @@ properties — including on iOS, where Obsidian otherwise gives you no way to ge
 an image into a property at all.
 
 <!--
-  TODO before submitting to the community catalogue: add a screenshot showing
-  the button on a `cover` property row, e.g. docs/screenshot.png, and reference
-  it here. The listing is much weaker without one.
+  TODO before submitting: record a short demo and drop it in below.
+
+  A GIF works well here - the whole flow is three seconds of screen. Commit it
+  as docs/demo.gif and use an ABSOLUTE raw URL rather than a relative path, so
+  it renders on obsidian.md and in the community directory too, not only on
+  GitHub:
+
+  ![Setting a cover image](https://raw.githubusercontent.com/<user>/<repo>/main/docs/demo.gif)
+
+  Keep it under a few MB. It ships nowhere near the user's vault - Obsidian only
+  ever downloads main.js, manifest.json and styles.css - so it costs installers
+  nothing.
 -->
 
 ## What it does

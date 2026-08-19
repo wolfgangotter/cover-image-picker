@@ -70,20 +70,27 @@ embedded in the wikilink, leaving a broken embed. Only a device run finds that.
 
 ## 3. Release and submission
 
-1. Merge to `main` and push.
-2. Tag exactly `1.0.0` — **no leading `v`**; the tag must equal the manifest
-   version or the catalogue check fails.
+The submission process changed: it is **no longer a pull request** against
+`obsidianmd/obsidian-releases`. Plugins are now added through the community
+directory web interface.
+
+1. **Push to a public GitHub repository**, with `main` as the default branch.
+   The directory reads `manifest.json` from the default branch, and the repo
+   must be publicly readable for review.
+2. **Tag exactly `1.0.0`** — no leading `v`. The tag has to equal the manifest
+   version or the automated check fails.
    ```bash
    git tag 1.0.0 && git push origin 1.0.0
    ```
-3. The release workflow builds and creates a **draft** release with `main.js`,
+3. The release workflow builds and opens a **draft** release with `main.js`,
    `manifest.json` and `styles.css` attached as individual files. Review it and
-   publish.
-4. Submit to the catalogue: fork
-   [`obsidianmd/obsidian-releases`](https://github.com/obsidianmd/obsidian-releases),
-   add an entry to `community-plugins.json`, and open a PR. Expect review
-   comments; the automated checks look at the manifest, the tag, and the release
-   assets.
+   **publish** it — a draft is not visible to the directory.
+4. **Submit** at <https://community.obsidian.md>: sign in with your Obsidian
+   account, link your GitHub account so ownership can be verified, and add the
+   plugin through the directory.
+5. **Address feedback.** Review is automated first. Fixes require a new release
+   with an incremented version — you cannot amend `1.0.0` in place once it has
+   been submitted.
 
 ## 4. After release
 
