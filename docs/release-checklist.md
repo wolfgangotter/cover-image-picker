@@ -21,7 +21,7 @@ effectively irreversible.
       `image-picker` / "Image Picker" and `cover-image` / "Cover Image" — worth a
       glance so the README differentiates.
 - [x] `main.js` is gitignored; CI builds it for the release
-- [x] Quality gate clean: `npm run check` (typecheck + lint + 207 tests),
+- [x] Quality gate clean: `npm run check` (typecheck + lint + 210 tests),
       zero errors **and** zero warnings
 
 ## 2. Before tagging
@@ -60,6 +60,7 @@ first release is the wrong time to find out.
 | Properties set to `Hidden` in Obsidian settings (F11) | ⬜ |
 | Popout window (desktop) | ⬜ |
 | **Type in a note, then insert a cover within ~2s** — nothing typed is lost | ⬜ |
+| Delete a property, then insert — must ask rather than resurrect it | ⬜ |
 | Disable/enable: no stray buttons, no surviving drop listeners | ✅ automated (`tests/lifecycle.test.ts`) |
 
 **On the non-ASCII row:** `tests/naming.test.ts` covers the sanitiser, which

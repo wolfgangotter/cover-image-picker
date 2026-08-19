@@ -33,6 +33,9 @@ export async function runPipeline(
 			`Set ${target.propertyKey}: ${result.width}×${result.height} ${result.format.toUpperCase()}, ${formatBytes(result.bytes)}`,
 		);
 		flashProperty(target.propertyKey);
+		// The interaction the focus memory exists to bridge is over. Keeping it
+		// would let this insertion silently steer the next one.
+		plugin.focusTracker.forget();
 	} catch (err) {
 		// Detail to the console only; the user gets a short safe message.
 		console.error('[cover-image-picker] insertion failed', err);

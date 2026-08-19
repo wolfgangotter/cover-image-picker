@@ -50,9 +50,13 @@ export class PropertyFocusTracker extends Component {
 		this.last = { notePath: file.path, propertyKey: key, at: Date.now() };
 	}
 
-	/** The remembered property for `notePath`, if it is still fresh. */
-	recall(notePath: string, now = Date.now()): string | null {
-		return recallFocus(this.last, notePath, now);
+	/**
+	 * The remembered property for `notePath`, if it is still fresh and still
+	 * exists. `stillPresent` is supplied by the caller, which is the only place
+	 * that knows the note's current frontmatter.
+	 */
+	recall(notePath: string, stillPresent?: (key: string) => boolean, now = Date.now()): string | null {
+		return recallFocus(this.last, notePath, now, { stillPresent });
 	}
 
 	forget(): void {

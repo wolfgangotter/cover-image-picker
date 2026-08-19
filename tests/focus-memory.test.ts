@@ -26,6 +26,29 @@ describe('recallFocus', () => {
 	});
 
 	it('honours a custom TTL', () => {
-		expect(recallFocus(memory, 'notes/a.md', memory.at + 50, 10)).toBeNull();
+		expect(recallFocus(memory, 'notes/a.md', memory.at + 50, { ttlMs: 10 })).toBeNull();
+	});
+
+	/**
+	 * Reported behaviour: touch `banner`, delete it, run the command, and the
+	 * deleted property came back. Deleting a property is the last time you
+	 * touch it, so the memory must not resurrect it.
+	 */
+	it('refuses a property the note no longer has', () => {
+		const gone = recallFocus(memory, 'notes/a.md', memory.at, { stillPresent: () => false });
+		expect(gone).toBeNull();
+	});
+
+	it('accepts a property that is still there', () => {
+		const present = recallFocus(memory, 'notes/a.md', memory.at, {
+			stillPresent: (key) => key === 'cover',
+		});
+		expect(present).toBe('cover');
+	});
+
+	it('expires within seconds, not minutes', () => {
+		// It bridges "open the palette and type a command", nothing longer.
+		expect(FOCUS_TTL_MS).toBeLessThanOrEqual(30_000);
+		expect(recallFocus(memory, 'notes/a.md', memory.at + 60_000)).toBeNull();
 	});
 });

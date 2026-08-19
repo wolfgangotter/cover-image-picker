@@ -290,9 +290,17 @@ Tried in order, all of 1–3 synchronous:
    Reliable because tapping the mobile toolbar preserves editor focus — which is
    exactly the source-mode case F10 hands us.
 2. **Last-focused property.** A `focusin` listener on matching property inputs
-   records `{path, key, timestamp}` with a ~120 s TTL. This is what makes the
-   command feel context-aware in Live Preview: tap the `cover` field, open the
-   command palette (which blurs the field), run the command — we still know.
+   records `{path, key, timestamp}`. This is what makes the command feel
+   context-aware in Live Preview: tap the `cover` field, open the command
+   palette (which blurs the field), run the command — we still know.
+
+   **Bounded hard, after a user report (2026-08-19).** The memory only applies
+   for **15 s**, and only to a property the note **still has**. The original
+   120 s window with no presence check meant deleting a property — which is the
+   last time you touch it — silently resurrected it on the next insert, with
+   nothing on screen to explain why. Hidden state that overrides a visible
+   choice is worse than no convenience at all. A completed insertion also
+   clears the memory, so one insert cannot steer the next.
 3. **Sole match.** Exactly one configured property present in the note's
    frontmatter → use it. Covers most real notes.
 4. **Multiple matches** → `SuggestModal` listing them with their current values.

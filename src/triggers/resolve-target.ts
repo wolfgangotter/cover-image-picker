@@ -7,7 +7,7 @@ import type { CoverImagePickerSettings } from '../settings/schema';
 
 /** Supplies step 2 of the chain; injected so the resolver stays testable. */
 export interface FocusRecall {
-	recall(notePath: string): string | null;
+	recall(notePath: string, stillPresent?: (key: string) => boolean): string | null;
 }
 
 /**
@@ -37,15 +37,17 @@ export function resolveTargetSync(
 		return { ...base, propertyKey: fromCursor };
 	}
 
-	// 2. Last-focused matching property. This is what makes the command feel
-	//    context-aware in Live Preview, where opening the palette blurs the field.
-	const remembered = focus?.recall(file.path) ?? null;
+	// 3. Sole configured property present in the note.
+	const present = matchingKeysInNote(app, file, config);
+
+	// 2. Last-focused matching property, but only one the note still has:
+	//    deleting a property is the last time you touch it, and resurrecting it
+	//    from that memory is indistinguishable from the plugin ignoring you.
+	const remembered = focus?.recall(file.path, (key) => present.includes(key)) ?? null;
 	if (remembered && isTargetProperty(remembered, config)) {
 		return { ...base, propertyKey: remembered };
 	}
 
-	// 3. Sole configured property present in the note.
-	const present = matchingKeysInNote(app, file, config);
 	if (present.length === 1 && present[0] !== undefined) {
 		return { ...base, propertyKey: present[0] };
 	}
