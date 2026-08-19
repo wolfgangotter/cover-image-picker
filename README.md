@@ -127,4 +127,4 @@ diagnostics that settled those constraints are in [`probes/`](probes/).
 
 ## License
 
-[0BSD](LICENSE)
+[MIT](LICENSE)
