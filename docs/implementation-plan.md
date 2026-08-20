@@ -619,7 +619,7 @@ Repository state is ready: licence corrected (it still carried the sample
 plugin's copyright holder), version 1.0.0, README with requirements, install,
 and the privacy statement. Screenshot, the `main` branch, the untested rows of
 the manual matrix, and everything public are tracked in
-[`release-checklist.md`](release-checklist.md).
+`docs/release-checklist.md`, which is kept out of the repository.
 
 ---
 
