@@ -20,7 +20,27 @@
 	flex: 0 0 auto;
 	width: var(--icon-size, 16px);
 	height: var(--icon-size, 16px);
-	margin-inline-start: var(--size-4-1);
+	/*
+	 * Pins the button to the trailing edge of the value cell.
+	 *
+	 * The cell is a flex row, so without this the button only lands on the
+	 * right as a side effect of the value editor filling the cell - which it
+	 * does not always do. Obsidian itself sizes date inputs to their content
+	 * (`.metadata-input-text.mod-date`), and property-styling plugins and
+	 * themes shrink editors to `fit-content` while idle, which drags the
+	 * button inward and makes it jump once the editor expands on hover or
+	 * focus. An auto margin eats the free space instead, so the position no
+	 * longer depends on a sibling we do not control. If the cell ever stops
+	 * being a flex container the margin resolves to 0, which is exactly the
+	 * old behaviour - it degrades rather than breaks.
+	 *
+	 * No start margin is needed: the cell's own `gap` still separates the
+	 * button from the value when there is no free space left to absorb.
+	 */
+	margin-inline-start: auto;
+	/* Matches the breathing room the row leaves above and below the icon, so
+	   the button does not sit flush against the value cell's right edge. */
+	margin-inline-end: var(--size-4-1);
 	border-radius: var(--radius-s);
 	color: var(--text-faint);
 	/* cursor:pointer is load-bearing on iOS: WebKit only reliably synthesises
@@ -63,7 +83,8 @@
 	width: 44px;
 	height: 44px;
 	margin-block: -8px;
-	margin-inline-start: 0;
+	margin-inline-start: auto;
+	margin-inline-end: var(--size-4-1);
 }
 
 .cip-suggest-key {
