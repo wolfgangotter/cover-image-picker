@@ -130,11 +130,11 @@ describe('the value written', () => {
 	it('removes only the targeted property when clearing', async () => {
 		const { port, frontmatter } = setup();
 		frontmatter.cover = 'x';
-		frontmatter.title = 'keep me';
+		frontmatter.title = 'Keep me';
 
 		await port.clear(target);
 
-		expect(frontmatter).toEqual({ title: 'keep me' });
+		expect(frontmatter).toEqual({ title: 'Keep me' });
 	});
 
 	it('reports a YAML failure as a frontmatter problem', async () => {
